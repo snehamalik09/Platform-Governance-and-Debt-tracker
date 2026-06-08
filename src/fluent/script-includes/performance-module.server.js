@@ -89,12 +89,16 @@ GovCopilotPerformanceModule.prototype = {
         while (gr.next()) {
             var collection = gr.getValue('collection') || '';
             var script = gr.getValue('script') || '';
-            if (collection && script.indexOf("GlideRecord('" + collection + "')") !== -1) {
-                this._writeFinding(scanRunSysId, 'br_recursive_pattern', 'high', 'sys_script',
-                    gr.getUniqueValue(), gr.getDisplayValue('name'),
-                    'Business rule may cause recursive loop',
-                    'Business rule "' + gr.getDisplayValue('name') + '" queries its own table (' + collection + '), which can trigger recursive execution and cause transaction timeouts.');
-                count++;
+            if (collection) {
+                var singleQ = "GlideRecord('" + collection + "')";
+                var doubleQ = 'GlideRecord("' + collection + '")';
+                if (script.indexOf(singleQ) !== -1 || script.indexOf(doubleQ) !== -1) {
+                    this._writeFinding(scanRunSysId, 'br_recursive_pattern', 'high', 'sys_script',
+                        gr.getUniqueValue(), gr.getDisplayValue('name'),
+                        'Business rule may cause recursive loop',
+                        'Business rule "' + gr.getDisplayValue('name') + '" queries its own table (' + collection + '), which can trigger recursive execution and cause transaction timeouts.');
+                    count++;
+                }
             }
         }
         return count;
@@ -103,18 +107,20 @@ GovCopilotPerformanceModule.prototype = {
     /** BR: GlideRecord in Loop — new GlideRecord() inside while/for loop */
     _findBRGlideRecordInLoop: function(scanRunSysId) {
         var count = 0;
-        var loopPattern = /(while|for)\s*\([^)]*\)\s*\{[^}]*(new\s+GlideRecord)/;
         var gr = new GlideRecord('sys_script');
         gr.addActiveQuery();
         gr.setLimit(this.batchSize);
         gr.query();
         while (gr.next()) {
             var script = gr.getValue('script') || '';
-            if (loopPattern.test(script)) {
+            // Two-pass: detect loop keyword AND GlideRecord instantiation (conservative — may have false positives)
+            var hasLoop = /(while|for)\s*\(/.test(script);
+            var hasGR = /new\s+GlideRecord\s*\(/.test(script);
+            if (hasLoop && hasGR) {
                 this._writeFinding(scanRunSysId, 'br_gliderecord_in_loop', 'high', 'sys_script',
                     gr.getUniqueValue(), gr.getDisplayValue('name'),
                     'GlideRecord instantiated inside a loop',
-                    'Business rule "' + gr.getDisplayValue('name') + '" creates a new GlideRecord inside a while/for loop. This results in N+1 database queries and causes significant performance degradation on large data sets.');
+                    'Business rule "' + gr.getDisplayValue('name') + '" contains both a loop and a GlideRecord instantiation. This may result in N+1 database queries. Review to confirm GlideRecord is not created inside the loop body.');
                 count++;
             }
         }
@@ -147,17 +153,25 @@ GovCopilotPerformanceModule.prototype = {
     /** Job: Long-Running — average duration > 300,000 ms */
     _findJobLongRunning: function(scanRunSysId) {
         var count = 0;
-        var gr = new GlideRecord('sysauto_script');
-        gr.addActiveQuery();
+        var reported = {};
+
+        // Query run history for long-running executions (duration > 300 seconds)
+        // sysauto_script_run_history has: scheduled_job (ref to sysauto_script), run_time (duration in ms), status
+        var gr = new GlideRecord('sysauto_script_run_history');
+        gr.addQuery('run_time', '>', 300000);
+        gr.addQuery('status', 'success'); // Only count successful (completed) runs
         gr.setLimit(this.batchSize);
         gr.query();
         while (gr.next()) {
-            var avgDuration = parseInt(gr.getValue('run_duration') || '0');
-            if (avgDuration > 300000) {
+            var jobSysId = gr.getValue('scheduled_job');
+            if (jobSysId && !reported[jobSysId]) {
+                reported[jobSysId] = true;
+                var jobName = gr.getDisplayValue('scheduled_job');
+                var duration = parseInt(gr.getValue('run_time') || '0');
                 this._writeFinding(scanRunSysId, 'job_long_running', 'high', 'sysauto_script',
-                    gr.getUniqueValue(), gr.getDisplayValue('name'),
-                    'Scheduled job has long average run duration',
-                    'Scheduled job "' + gr.getDisplayValue('name') + '" has an average run duration of ' + Math.round(avgDuration/1000) + ' seconds (threshold: 300s). Long-running jobs impact platform stability.');
+                    jobSysId, jobName,
+                    'Scheduled job has long run duration',
+                    'Scheduled job "' + jobName + '" has run for over ' + Math.round(duration/1000) + ' seconds (threshold: 300s). Review job logic for optimization opportunities.');
                 count++;
             }
         }
@@ -167,18 +181,35 @@ GovCopilotPerformanceModule.prototype = {
     /** Job: Frequently Failing — failure rate > 20% in last 30 days */
     _findJobFrequentlyFailing: function(scanRunSysId) {
         var count = 0;
-        var gr = new GlideRecord('sysauto_script');
-        gr.addActiveQuery();
-        gr.setLimit(this.batchSize);
+        var thirtyDaysAgo = new GlideDateTime();
+        thirtyDaysAgo.addDaysUTC(-30);
+
+        // Build per-job run and failure counts from history
+        var jobStats = {};
+        var gr = new GlideRecord('sysauto_script_run_history');
+        gr.addQuery('sys_created_on', '>', thirtyDaysAgo.getValue());
+        gr.setLimit(this.batchSize * 5);
         gr.query();
         while (gr.next()) {
-            var runCount = parseInt(gr.getValue('run_count') || '0');
-            var failCount = parseInt(gr.getValue('failure_count') || '0');
-            if (runCount > 0 && (failCount / runCount) > 0.20) {
+            var jobSysId = gr.getValue('scheduled_job');
+            if (!jobSysId) continue;
+            if (!jobStats[jobSysId]) {
+                jobStats[jobSysId] = { name: gr.getDisplayValue('scheduled_job'), runs: 0, failures: 0 };
+            }
+            jobStats[jobSysId].runs++;
+            var status = gr.getValue('status') || '';
+            if (status !== 'success' && status !== 'running') {
+                jobStats[jobSysId].failures++;
+            }
+        }
+
+        for (var sysId in jobStats) {
+            var stats = jobStats[sysId];
+            if (stats.runs > 0 && (stats.failures / stats.runs) > 0.20) {
                 this._writeFinding(scanRunSysId, 'job_frequently_failing', 'high', 'sysauto_script',
-                    gr.getUniqueValue(), gr.getDisplayValue('name'),
+                    sysId, stats.name,
                     'Scheduled job has high failure rate',
-                    'Scheduled job "' + gr.getDisplayValue('name') + '" failed ' + failCount + ' out of ' + runCount + ' runs (' + Math.round(failCount/runCount*100) + '%). Review job logic and error handling.');
+                    'Scheduled job "' + stats.name + '" failed ' + stats.failures + ' out of ' + stats.runs + ' runs in the last 30 days (' + Math.round(stats.failures/stats.runs*100) + '%). Review job logic and error handling.');
                 count++;
             }
         }
