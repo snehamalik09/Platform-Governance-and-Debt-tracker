@@ -1,11 +1,23 @@
 import {
   Table,
   StringColumn,
+  MultiLineTextColumn,
   ReferenceColumn,
   IntegerColumn,
   DateTimeColumn,
   ChoiceColumn,
 } from '@servicenow/sdk/core'
+
+// -----------------------------------------------------------------------
+// Shared Constants
+// -----------------------------------------------------------------------
+const DOMAIN_CHOICES = {
+  performance: { label: 'Performance' },
+  security: { label: 'Security' },
+  integration: { label: 'Integration' },
+  catalog: { label: 'Catalog' },
+  cmdb: { label: 'CMDB' },
+} as const
 
 // -----------------------------------------------------------------------
 // Table 1: x_gov_copilot_scan_run
@@ -87,7 +99,7 @@ export const x_gov_copilot_scan_run = Table({
 })
 
 // -----------------------------------------------------------------------
-// Table 4: x_gov_copilot_recommendation
+// Table 2: x_gov_copilot_recommendation
 // Defined before x_gov_copilot_finding to resolve circular reference
 // (finding.ai_recommendation -> recommendation, recommendation.finding -> finding)
 // -----------------------------------------------------------------------
@@ -108,17 +120,14 @@ export const x_gov_copilot_recommendation = Table({
         low: { label: 'Low' },
       },
     }),
-    x_gov_copilot_business_impact: StringColumn({
+    x_gov_copilot_business_impact: MultiLineTextColumn({
       label: 'Business Impact',
-      maxLength: 4000,
     }),
-    x_gov_copilot_technical_impact: StringColumn({
+    x_gov_copilot_technical_impact: MultiLineTextColumn({
       label: 'Technical Impact',
-      maxLength: 4000,
     }),
-    x_gov_copilot_remediation_steps: StringColumn({
+    x_gov_copilot_remediation_steps: MultiLineTextColumn({
       label: 'Remediation Steps',
-      maxLength: 4000,
     }),
     x_gov_copilot_estimated_effort: ChoiceColumn({
       label: 'Estimated Effort',
@@ -128,9 +137,8 @@ export const x_gov_copilot_recommendation = Table({
         weeks: { label: 'Weeks' },
       },
     }),
-    x_gov_copilot_expected_benefit: StringColumn({
+    x_gov_copilot_expected_benefit: MultiLineTextColumn({
       label: 'Expected Benefit',
-      maxLength: 4000,
     }),
     x_gov_copilot_ai_model_used: StringColumn({
       label: 'AI Model Used',
@@ -153,7 +161,7 @@ export const x_gov_copilot_recommendation = Table({
 })
 
 // -----------------------------------------------------------------------
-// Table 2: x_gov_copilot_finding
+// Table 3: x_gov_copilot_finding
 // Defined after x_gov_copilot_recommendation to satisfy the forward reference
 // -----------------------------------------------------------------------
 export const x_gov_copilot_finding = Table({
@@ -166,13 +174,7 @@ export const x_gov_copilot_finding = Table({
     }),
     x_gov_copilot_domain: ChoiceColumn({
       label: 'Domain',
-      choices: {
-        performance: { label: 'Performance' },
-        security: { label: 'Security' },
-        integration: { label: 'Integration' },
-        catalog: { label: 'Catalog' },
-        cmdb: { label: 'CMDB' },
-      },
+      choices: DOMAIN_CHOICES,
     }),
     x_gov_copilot_finding_type: StringColumn({
       label: 'Finding Type',
@@ -182,9 +184,8 @@ export const x_gov_copilot_finding = Table({
       label: 'Title',
       maxLength: 255,
     }),
-    x_gov_copilot_description: StringColumn({
+    x_gov_copilot_description: MultiLineTextColumn({
       label: 'Description',
-      maxLength: 4000,
     }),
     x_gov_copilot_severity: ChoiceColumn({
       label: 'Severity',
@@ -225,7 +226,7 @@ export const x_gov_copilot_finding = Table({
 })
 
 // -----------------------------------------------------------------------
-// Table 3: x_gov_copilot_domain_score
+// Table 4: x_gov_copilot_domain_score
 // -----------------------------------------------------------------------
 export const x_gov_copilot_domain_score = Table({
   name: 'x_gov_copilot_domain_score',
@@ -237,13 +238,7 @@ export const x_gov_copilot_domain_score = Table({
     }),
     x_gov_copilot_domain: ChoiceColumn({
       label: 'Domain',
-      choices: {
-        performance: { label: 'Performance' },
-        security: { label: 'Security' },
-        integration: { label: 'Integration' },
-        catalog: { label: 'Catalog' },
-        cmdb: { label: 'CMDB' },
-      },
+      choices: DOMAIN_CHOICES,
     }),
     x_gov_copilot_score: IntegerColumn({
       label: 'Score',
