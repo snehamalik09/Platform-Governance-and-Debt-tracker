@@ -1,0 +1,17 @@
+{
+  "name": "platform-governance-health-copilot",
+  "version": "1.0.0",
+  "description": "Platform Governance & Health Copilot — ServiceNow scoped application",
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf dist && tsc -b && now-sdk build",
+    "install-app": "now-sdk install",
+    "transform": "now-sdk transform",
+    "dependencies": "now-sdk dependencies"
+  },
+  "devDependencies": {
+    "@servicenow/sdk": "^4.0.0",
+    "@servicenow/glide": "^27.0.0",
+    "typescript": "^5.5.0"
+  }
+}
