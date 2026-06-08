@@ -24,7 +24,8 @@
     // 1. Latest completed scan_run
     // -----------------------------------------------------------------------
     var scanGr = new GlideRecord('x_gov_copilot_scan_run');
-    scanGr.addQuery('x_gov_copilot_status', 'completed');
+    var statusQuery = scanGr.addQuery('x_gov_copilot_status', 'completed');
+    statusQuery.addOrCondition('x_gov_copilot_status', 'partial');
     scanGr.orderByDesc('x_gov_copilot_started_at');
     scanGr.setLimit(2);
     scanGr.query();
@@ -90,13 +91,13 @@
             data.domainScores.push({
                 domain: REQUIRED_DOMAINS[ri],
                 score: null,
-                previousScore: null,
-                scoreDelta: 0,
-                findingCount: 0,
-                criticalCount: 0,
-                highCount: 0,
-                mediumCount: 0,
-                lowCount: 0,
+                previous_score: null,
+                score_delta: 0,
+                finding_count: 0,
+                critical_count: 0,
+                high_count: 0,
+                medium_count: 0,
+                low_count: 0,
                 missing: true
             });
         }
@@ -145,7 +146,6 @@
     // -----------------------------------------------------------------------
     var findGr = new GlideRecord('x_gov_copilot_finding');
     findGr.addQuery('x_gov_copilot_scan_run', latestSysId);
-    findGr.orderBy('x_gov_copilot_severity');
     findGr.setLimit(200);
     findGr.query();
     while (findGr.next()) {
@@ -162,17 +162,23 @@
             ai_recommendation: findGr.getValue('x_gov_copilot_ai_recommendation')
         });
     }
+    var SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+    data.findings.sort(function(a, b) {
+        return (SEVERITY_ORDER[a.severity] !== undefined ? SEVERITY_ORDER[a.severity] : 99) -
+               (SEVERITY_ORDER[b.severity] !== undefined ? SEVERITY_ORDER[b.severity] : 99);
+    });
 
     // -----------------------------------------------------------------------
     // 4. AI recommendation count (findings with generated recommendations)
     // -----------------------------------------------------------------------
-    var recGr = new GlideRecord('x_gov_copilot_recommendation');
-    recGr.addQuery('x_gov_copilot_ai_status', 'generated');
-    recGr.addQuery('x_gov_copilot_finding.x_gov_copilot_scan_run', latestSysId);
-    recGr.setLimit(1000);
-    recGr.query();
-    while (recGr.next()) {
-        data.aiRecommendationCount++;
+    var recAgg = new GlideAggregate('x_gov_copilot_recommendation');
+    recAgg.addQuery('x_gov_copilot_finding.x_gov_copilot_scan_run', latestSysId);
+    recAgg.addQuery('x_gov_copilot_ai_status', 'generated');
+    recAgg.addAggregate('COUNT');
+    recAgg.query();
+    data.aiRecommendationCount = 0;
+    if (recAgg.next()) {
+        data.aiRecommendationCount = parseInt(recAgg.getAggregate('COUNT'), 10);
     }
 
     // -----------------------------------------------------------------------

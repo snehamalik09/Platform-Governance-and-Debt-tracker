@@ -3,7 +3,7 @@
 // AC-F11 Health Gauge, AC-F12 Domain Scorecards, AC-F13 Findings Panel,
 // AC-F14 Trend Charts, AC-F15 Cost Optimisation.
 
-api.controller = function($timeout, spUtil) {
+api.controller = function($timeout, $http, spUtil) {
     var c = this;
 
     // -----------------------------------------------------------------------
@@ -103,7 +103,17 @@ api.controller = function($timeout, spUtil) {
     };
 
     c.updateFindingStatus = function(finding) {
-        spUtil.update(finding);
+        if (!finding || !finding.sys_id) { return; }
+        $http({
+            method: 'PATCH',
+            url: '/api/now/table/x_gov_copilot_finding/' + finding.sys_id,
+            data: { x_gov_copilot_remediation_status: finding.remediation_status },
+            headers: { 'Content-Type': 'application/json', 'X-UserToken': window.g_ck || '' }
+        }).then(function() {
+            // success - no action needed, value already updated in ng-model
+        }, function(error) {
+            console.error('Failed to update finding status', error);
+        });
     };
 
     // -----------------------------------------------------------------------
@@ -132,21 +142,21 @@ api.controller = function($timeout, spUtil) {
             c.scanning = false;
             var items = response.responseXML.documentElement.getElementsByTagName('item');
             if (!items || items.length === 0) {
-                c.$applyAsync(function() {
+                $timeout(function() {
                     c.scanMessage = { type: 'error', text: 'No response from server.' };
-                });
+                }, 0);
                 return;
             }
             var answer = items[0];
             var error = answer.getAttribute('error');
             if (error) {
-                c.$applyAsync(function() {
+                $timeout(function() {
                     c.scanMessage = { type: 'error', text: error };
-                });
+                }, 0);
             } else {
-                c.$applyAsync(function() {
+                $timeout(function() {
                     c.scanMessage = { type: 'success', text: 'Scan started. Refresh the page after a few minutes to see updated results.' };
-                });
+                }, 0);
             }
         });
     };
