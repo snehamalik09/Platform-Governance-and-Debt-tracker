@@ -85,6 +85,22 @@ declare global {
                         table: 'sys_rest_message'
                         id: '8d4a3a1cdd31446eacf455dc61ac5818'
                     }
+                    script_include_gov_copilot_ai_engine: {
+                        table: 'sys_script_include'
+                        id: '47f03f2a31234ec0b1f98121c44bde87'
+                    }
+                    script_include_gov_copilot_catalog_module: {
+                        table: 'sys_script_include'
+                        id: '9f0e1fb0c8524e65a2d216a4c7b995e3'
+                    }
+                    script_include_gov_copilot_cmdb_module: {
+                        table: 'sys_script_include'
+                        id: '7c25f051881d48848b5d622ef6e6dcc3'
+                    }
+                    script_include_gov_copilot_integration_module: {
+                        table: 'sys_script_include'
+                        id: '211fb5fd289f4138bab4de76e17f489d'
+                    }
                     script_include_gov_copilot_performance_module: {
                         table: 'sys_script_include'
                         id: 'dab7aa9a39674da6a02797048730b12b'
@@ -92,6 +108,10 @@ declare global {
                     script_include_gov_copilot_scoring_engine: {
                         table: 'sys_script_include'
                         id: 'dd6620b49c7b4bb39b71a4dba83e3333'
+                    }
+                    script_include_gov_copilot_security_module: {
+                        table: 'sys_script_include'
+                        id: '715b5948dcd149229c67f2f4c60feff6'
                     }
                 }
                 composite: [
