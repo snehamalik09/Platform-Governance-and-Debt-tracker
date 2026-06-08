@@ -1,0 +1,395 @@
+<!-- Platform Governance & Health Copilot — Executive Dashboard Widget Template -->
+<!-- AC-F11 Health Gauge | AC-F12 Domain Scorecards | AC-F13 Findings Panel -->
+<!-- AC-F14 Trend Charts | AC-F15 Cost Optimisation Panel | AC-N03 -->
+
+<div class="gov-copilot-dashboard">
+
+    <!-- Partial scan warning banner (AC-N03) -->
+    <div ng-if="c.data.latestScan && c.data.latestScan.status === 'partial'"
+         class="alert alert-warning partial-banner" role="alert">
+        <span class="fa fa-exclamation-triangle"></span>
+        <strong>Partial Scan:</strong> The latest scan completed with errors in some modules
+        ({{ c.data.latestScan.modules_failed }}). Results may be incomplete.
+    </div>
+
+    <!-- No data state -->
+    <div ng-if="!c.data.latestScan" class="alert alert-info">
+        <span class="fa fa-info-circle"></span>
+        No completed scans found. Run a scan to populate the dashboard.
+        <span ng-if="c.data.isSysadmin">
+            <button class="btn btn-primary btn-sm gov-copilot-scan-btn"
+                    ng-click="c.runScan()"
+                    ng-disabled="c.scanning">
+                <span ng-if="!c.scanning"><span class="fa fa-play"></span> Run Scan Now</span>
+                <span ng-if="c.scanning"><span class="fa fa-spinner fa-spin"></span> Starting...</span>
+            </button>
+        </span>
+    </div>
+
+    <!-- Scan message alert -->
+    <div ng-if="c.scanMessage" class="alert"
+         ng-class="{'alert-success': c.scanMessage.type === 'success', 'alert-danger': c.scanMessage.type === 'error'}">
+        {{ c.scanMessage.text }}
+    </div>
+
+    <!-- Main dashboard — only shown when scan data exists -->
+    <div ng-if="c.data.latestScan">
+
+        <!-- ================================================================
+             ROW 1: Health Score Gauge (AC-F11) + Run Scan button
+             ================================================================ -->
+        <div class="row gov-copilot-row">
+            <div class="col-md-4 col-sm-6">
+                <div class="panel panel-default gov-copilot-panel">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">
+                            <span class="fa fa-tachometer"></span> Overall Health Score
+                        </h3>
+                    </div>
+                    <div class="panel-body gov-copilot-gauge-body">
+                        <div class="gov-copilot-gauge-wrapper">
+                            <canvas id="gov-copilot-health-gauge" width="200" height="200"></canvas>
+                            <div class="gov-copilot-gauge-score"
+                                 ng-style="{'color': c.scoreColour(c.data.latestScan.overall_health_score)}">
+                                {{ c.data.latestScan.overall_health_score }}
+                            </div>
+                        </div>
+                        <div class="gov-copilot-gauge-trend">
+                            <span class="gov-copilot-trend-arrow"
+                                  ng-class="c.trendClass(c.data.latestScan.overall_health_score, c.data.previousScan && c.data.previousScan.overall_health_score)">
+                                {{ c.trendArrow(c.data.latestScan.overall_health_score, c.data.previousScan && c.data.previousScan.overall_health_score) }}
+                            </span>
+                            <span ng-if="c.data.previousScan" class="text-muted small">
+                                vs previous: {{ c.data.previousScan.overall_health_score }}
+                            </span>
+                        </div>
+                        <div class="gov-copilot-scan-meta text-muted small">
+                            <div>Last scan: {{ c.data.latestScan.started_at }}</div>
+                            <div ng-if="c.data.latestScan.duration_seconds">
+                                Duration: {{ c.data.latestScan.duration_seconds }}s
+                            </div>
+                        </div>
+                        <div ng-if="c.data.isSysadmin" class="gov-copilot-run-scan-container">
+                            <button class="btn btn-primary btn-sm gov-copilot-scan-btn"
+                                    ng-click="c.runScan()"
+                                    ng-disabled="c.scanning">
+                                <span ng-if="!c.scanning"><span class="fa fa-play"></span> Run Scan Now</span>
+                                <span ng-if="c.scanning"><span class="fa fa-spinner fa-spin"></span> Starting...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Severity Summary Tiles (AC-F13) -->
+            <div class="col-md-8 col-sm-6">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="gov-copilot-severity-tile gov-copilot-severity-critical">
+                            <div class="gov-copilot-severity-count">{{ c.severityCount('critical') }}</div>
+                            <div class="gov-copilot-severity-label">Critical</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="gov-copilot-severity-tile gov-copilot-severity-high">
+                            <div class="gov-copilot-severity-count">{{ c.severityCount('high') }}</div>
+                            <div class="gov-copilot-severity-label">High</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="gov-copilot-severity-tile gov-copilot-severity-medium">
+                            <div class="gov-copilot-severity-count">{{ c.severityCount('medium') }}</div>
+                            <div class="gov-copilot-severity-label">Medium</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="gov-copilot-severity-tile gov-copilot-severity-low">
+                            <div class="gov-copilot-severity-count">{{ c.severityCount('low') }}</div>
+                            <div class="gov-copilot-severity-label">Low</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row gov-copilot-row-inner">
+                    <div class="col-md-12">
+                        <div class="gov-copilot-ai-badge">
+                            <span class="fa fa-robot"></span>
+                            <span class="badge badge-primary">{{ c.data.aiRecommendationCount }}</span>
+                            AI Recommendations Generated
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             ROW 2: Domain Scorecards (AC-F12)
+             ================================================================ -->
+        <div class="row gov-copilot-row">
+            <div class="col-md-12">
+                <h4 class="gov-copilot-section-title">
+                    <span class="fa fa-th-large"></span> Domain Scorecards
+                </h4>
+            </div>
+        </div>
+        <div class="row gov-copilot-row">
+            <div class="col-md-12">
+                <div class="row">
+                    <div class="col-md-2 col-sm-4 col-xs-6"
+                         ng-repeat="ds in c.data.domainScores track by ds.sys_id">
+                        <div class="gov-copilot-domain-card"
+                             ng-class="{'gov-copilot-domain-active': c.activeDomainFilter === ds.domain}"
+                             ng-click="c.filterByDomain(ds.domain)"
+                             title="Click to filter findings by {{ ds.domain }}">
+                            <div class="gov-copilot-domain-name">{{ ds.domain }}</div>
+                            <div class="gov-copilot-domain-score-badge"
+                                 ng-class="c.scoreBadgeClass(ds.score)">
+                                {{ ds.score }}
+                            </div>
+                            <div class="gov-copilot-domain-trend">
+                                <span ng-class="c.domainTrendClass(ds)">{{ c.domainTrendArrow(ds) }}</span>
+                                <span class="text-muted small">{{ ds.score_delta > 0 ? '+' : '' }}{{ ds.score_delta | number:1 }}</span>
+                            </div>
+                            <div class="gov-copilot-domain-counts">
+                                <span class="gov-copilot-count-critical" title="Critical">{{ ds.critical_count }}</span>
+                                <span class="gov-copilot-count-sep">/</span>
+                                <span class="gov-copilot-count-high" title="High">{{ ds.high_count }}</span>
+                                <span class="gov-copilot-count-sep">/</span>
+                                <span class="gov-copilot-count-medium" title="Medium">{{ ds.medium_count }}</span>
+                                <span class="gov-copilot-count-sep">/</span>
+                                <span class="gov-copilot-count-low" title="Low">{{ ds.low_count }}</span>
+                            </div>
+                            <div class="text-muted small gov-copilot-domain-legend">C/H/M/L</div>
+                        </div>
+                    </div>
+                    <div ng-if="!c.data.domainScores || c.data.domainScores.length === 0"
+                         class="col-md-12">
+                        <p class="text-muted">No domain scores available for this scan.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             ROW 3: Findings Panel (AC-F13)
+             ================================================================ -->
+        <div class="row gov-copilot-row">
+            <div class="col-md-12">
+                <div class="panel panel-default gov-copilot-panel">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">
+                            <span class="fa fa-list-alt"></span> Findings
+                            <span class="badge">{{ c.filteredFindings().length }}</span>
+                            <span ng-if="c.activeDomainFilter" class="gov-copilot-filter-badge">
+                                Domain: {{ c.activeDomainFilter }}
+                                <a ng-click="c.filterByDomain(c.activeDomainFilter)" class="gov-copilot-clear-filter">
+                                    <span class="fa fa-times"></span>
+                                </a>
+                            </span>
+                        </h3>
+                    </div>
+                    <div class="panel-body">
+                        <!-- Filters -->
+                        <div class="row gov-copilot-filter-row">
+                            <div class="col-md-3 col-sm-4">
+                                <label class="sr-only" for="filter-domain">Filter by Domain</label>
+                                <select id="filter-domain" class="form-control input-sm"
+                                        ng-model="c.filterDomain"
+                                        ng-change="c.activeDomainFilter = c.filterDomain || null">
+                                    <option value="">All Domains</option>
+                                    <option ng-repeat="ds in c.data.domainScores track by ds.sys_id"
+                                            value="{{ ds.domain }}">{{ ds.domain }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4">
+                                <label class="sr-only" for="filter-severity">Filter by Severity</label>
+                                <select id="filter-severity" class="form-control input-sm"
+                                        ng-model="c.filterSeverity">
+                                    <option value="">All Severities</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-4">
+                                <label class="sr-only" for="filter-status">Filter by Status</label>
+                                <select id="filter-status" class="form-control input-sm"
+                                        ng-model="c.filterStatus">
+                                    <option value="">All Statuses</option>
+                                    <option value="open">Open</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="resolved">Resolved</option>
+                                    <option value="accepted_risk">Accepted Risk</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Findings table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover gov-copilot-findings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Severity</th>
+                                        <th>Domain</th>
+                                        <th>Title</th>
+                                        <th>Affected Record</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat-start="finding in c.filteredFindings() track by finding.sys_id"
+                                        ng-click="c.toggleFinding(finding)"
+                                        class="gov-copilot-finding-row"
+                                        ng-class="{'gov-copilot-finding-expanded': c.isExpanded(finding)}">
+                                        <td>
+                                            <span class="label gov-copilot-sev-label"
+                                                  ng-class="c.severityBadgeClass(finding.severity)">
+                                                {{ finding.severity }}
+                                            </span>
+                                        </td>
+                                        <td>{{ finding.domain }}</td>
+                                        <td>{{ finding.title }}</td>
+                                        <td>
+                                            <span ng-if="finding.affected_record_name" class="text-muted small">
+                                                {{ finding.affected_table }}: {{ finding.affected_record_name }}
+                                            </span>
+                                        </td>
+                                        <td ng-click="$event.stopPropagation()">
+                                            <select class="form-control input-sm gov-copilot-status-select"
+                                                    ng-model="finding.remediation_status"
+                                                    ng-change="c.updateFindingStatus(finding)">
+                                                <option value="open">Open</option>
+                                                <option value="in_progress">In Progress</option>
+                                                <option value="resolved">Resolved</option>
+                                                <option value="accepted_risk">Accepted Risk</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <span class="fa"
+                                                  ng-class="{'fa-chevron-down': !c.isExpanded(finding), 'fa-chevron-up': c.isExpanded(finding)}">
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <!-- Inline detail row -->
+                                    <tr ng-repeat-end
+                                        ng-show="c.isExpanded(finding)"
+                                        class="gov-copilot-finding-detail-row">
+                                        <td colspan="6">
+                                            <div class="gov-copilot-finding-detail">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <strong>Description</strong>
+                                                        <p class="gov-copilot-detail-text">{{ finding.description }}</p>
+                                                    </div>
+                                                    <div class="col-md-6" ng-if="finding.ai_recommendation">
+                                                        <strong><span class="fa fa-robot"></span> AI Recommendation</strong>
+                                                        <p class="gov-copilot-detail-text gov-copilot-ai-rec">{{ finding.ai_recommendation }}</p>
+                                                    </div>
+                                                    <div class="col-md-6" ng-if="!finding.ai_recommendation">
+                                                        <p class="text-muted small">No AI recommendation generated yet.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div ng-if="c.filteredFindings().length === 0" class="gov-copilot-no-findings text-muted">
+                            No findings match the current filters.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             ROW 4: Trend Charts (AC-F14)
+             ================================================================ -->
+        <div class="row gov-copilot-row">
+            <div class="col-md-12">
+                <h4 class="gov-copilot-section-title">
+                    <span class="fa fa-line-chart"></span> Health Trends (Last 10 Scans)
+                </h4>
+            </div>
+        </div>
+        <div class="row gov-copilot-row" ng-if="c.data.trendData && c.data.trendData.length > 0">
+            <div class="col-md-6">
+                <div class="panel panel-default gov-copilot-panel">
+                    <div class="panel-heading">
+                        <h4 class="panel-title">Health Score Trend</h4>
+                    </div>
+                    <div class="panel-body gov-copilot-chart-body">
+                        <canvas id="gov-copilot-trend-line" class="gov-copilot-chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="panel panel-default gov-copilot-panel">
+                    <div class="panel-heading">
+                        <h4 class="panel-title">Finding Severity per Scan</h4>
+                    </div>
+                    <div class="panel-body gov-copilot-chart-body">
+                        <canvas id="gov-copilot-trend-bar" class="gov-copilot-chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row gov-copilot-row" ng-if="!c.data.trendData || c.data.trendData.length === 0">
+            <div class="col-md-12">
+                <p class="text-muted">Not enough scan history to display trend charts.</p>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             ROW 5: Cost Optimisation Panel (AC-F15)
+             ================================================================ -->
+        <div class="row gov-copilot-row">
+            <div class="col-md-12">
+                <div class="panel panel-default gov-copilot-panel">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">
+                            <span class="fa fa-dollar"></span> Cost Optimisation Opportunities
+                        </h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="gov-copilot-cost-tile">
+                                    <div class="gov-copilot-cost-count">{{ c.data.costOpt.unusedIntegrations }}</div>
+                                    <div class="gov-copilot-cost-label">Unused REST Integrations</div>
+                                    <div class="text-muted small">No activity in 90 days</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="gov-copilot-cost-tile">
+                                    <div class="gov-copilot-cost-count">{{ c.data.costOpt.zeroRequestCatalogItems }}</div>
+                                    <div class="gov-copilot-cost-label">Zero-Request Catalog Items</div>
+                                    <div class="text-muted small">Active, not requested in 90 days</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="gov-copilot-cost-tile">
+                                    <div class="gov-copilot-cost-count">{{ c.data.costOpt.flowsNeverTriggered }}</div>
+                                    <div class="gov-copilot-cost-label">Untriggered Flows</div>
+                                    <div class="text-muted small">No executions in 90 days</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="gov-copilot-cost-tile">
+                                    <div class="gov-copilot-cost-count">{{ c.data.costOpt.jobsNeverRun }}</div>
+                                    <div class="gov-copilot-cost-label">Scheduled Jobs Never Run</div>
+                                    <div class="text-muted small">Active, last_run_time null</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end ng-if latestScan -->
+
+</div><!-- end gov-copilot-dashboard -->

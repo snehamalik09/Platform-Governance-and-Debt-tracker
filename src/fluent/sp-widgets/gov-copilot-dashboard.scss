@@ -1,0 +1,358 @@
+/* Platform Governance & Health Copilot — Dashboard Widget Styles */
+/* Flat selectors only — no BEM nesting — Service Portal SCSS constraint */
+
+.gov-copilot-dashboard {
+    padding: 0 0 24px 0;
+}
+
+.gov-copilot-row {
+    margin-bottom: 20px;
+}
+
+.gov-copilot-row-inner {
+    margin-top: 12px;
+}
+
+.gov-copilot-panel {
+    margin-bottom: 0;
+}
+
+.gov-copilot-section-title {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+    color: #343a40;
+}
+
+/* Partial scan banner */
+.partial-banner {
+    border-left: 4px solid #ffc107;
+}
+
+/* -------------------------------------------------------------------------
+   Health Gauge (AC-F11)
+   ------------------------------------------------------------------------- */
+.gov-copilot-gauge-body {
+    text-align: center;
+}
+
+.gov-copilot-gauge-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 200px;
+    height: 200px;
+}
+
+.gov-copilot-gauge-score {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.gov-copilot-gauge-trend {
+    margin-top: 8px;
+    font-size: 1.1rem;
+}
+
+.gov-copilot-scan-meta {
+    margin-top: 8px;
+}
+
+.gov-copilot-run-scan-container {
+    margin-top: 12px;
+}
+
+.gov-copilot-scan-btn {
+    min-width: 130px;
+}
+
+/* -------------------------------------------------------------------------
+   Trend arrows
+   ------------------------------------------------------------------------- */
+.gov-copilot-trend-arrow {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+/* -------------------------------------------------------------------------
+   Severity tiles (AC-F13)
+   ------------------------------------------------------------------------- */
+.gov-copilot-severity-tile {
+    text-align: center;
+    border-radius: 4px;
+    padding: 16px 8px;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.gov-copilot-severity-critical {
+    background-color: #dc3545;
+}
+
+.gov-copilot-severity-high {
+    background-color: #ffc107;
+    color: #343a40;
+}
+
+.gov-copilot-severity-medium {
+    background-color: #17a2b8;
+}
+
+.gov-copilot-severity-low {
+    background-color: #6c757d;
+}
+
+.gov-copilot-severity-count {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.gov-copilot-severity-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+}
+
+/* -------------------------------------------------------------------------
+   AI recommendation badge
+   ------------------------------------------------------------------------- */
+.gov-copilot-ai-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* -------------------------------------------------------------------------
+   Domain scorecards (AC-F12)
+   ------------------------------------------------------------------------- */
+.gov-copilot-domain-card {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px 8px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    background-color: #fff;
+}
+
+.gov-copilot-domain-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-color: #007bff;
+}
+
+.gov-copilot-domain-active {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.gov-copilot-domain-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: #343a40;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gov-copilot-domain-score-badge {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #343a40;
+}
+
+.badge-orange {
+    background-color: #fd7e14;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.gov-copilot-domain-trend {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+.gov-copilot-domain-counts {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.gov-copilot-count-critical {
+    color: #dc3545;
+}
+
+.gov-copilot-count-high {
+    color: #e0a800;
+}
+
+.gov-copilot-count-medium {
+    color: #17a2b8;
+}
+
+.gov-copilot-count-low {
+    color: #6c757d;
+}
+
+.gov-copilot-count-sep {
+    color: #dee2e6;
+    margin: 0 1px;
+}
+
+.gov-copilot-domain-legend {
+    margin-top: 2px;
+    color: #adb5bd;
+    font-size: 0.7rem;
+}
+
+/* -------------------------------------------------------------------------
+   Findings panel (AC-F13)
+   ------------------------------------------------------------------------- */
+.gov-copilot-filter-row {
+    margin-bottom: 12px;
+}
+
+.gov-copilot-filter-badge {
+    display: inline-block;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    margin-left: 8px;
+    font-weight: 400;
+}
+
+.gov-copilot-clear-filter {
+    cursor: pointer;
+    margin-left: 4px;
+    color: #6c757d;
+}
+
+.gov-copilot-clear-filter:hover {
+    color: #dc3545;
+}
+
+.gov-copilot-findings-table {
+    margin-bottom: 0;
+}
+
+.gov-copilot-finding-row {
+    cursor: pointer;
+}
+
+.gov-copilot-finding-expanded {
+    background-color: #f8f9fa;
+}
+
+.gov-copilot-finding-detail-row td {
+    background-color: #f8f9fa;
+    border-top: none;
+    padding: 0;
+}
+
+.gov-copilot-finding-detail {
+    padding: 16px;
+    border-top: 2px solid #dee2e6;
+}
+
+.gov-copilot-detail-text {
+    font-size: 0.9rem;
+    margin-top: 6px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gov-copilot-ai-rec {
+    background-color: #fff3cd;
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 3px solid #ffc107;
+}
+
+.gov-copilot-sev-label {
+    text-transform: capitalize;
+}
+
+.gov-copilot-status-select {
+    min-width: 120px;
+}
+
+.gov-copilot-no-findings {
+    text-align: center;
+    padding: 24px;
+}
+
+/* -------------------------------------------------------------------------
+   Trend charts (AC-F14)
+   ------------------------------------------------------------------------- */
+.gov-copilot-chart-body {
+    height: 260px;
+    position: relative;
+}
+
+.gov-copilot-chart-canvas {
+    width: 100% !important;
+    height: 240px !important;
+}
+
+/* -------------------------------------------------------------------------
+   Cost Optimisation tiles (AC-F15)
+   ------------------------------------------------------------------------- */
+.gov-copilot-cost-tile {
+    text-align: center;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 16px 8px;
+    margin-bottom: 12px;
+    background-color: #f8f9fa;
+}
+
+.gov-copilot-cost-count {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #343a40;
+    line-height: 1;
+}
+
+.gov-copilot-cost-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    margin-top: 6px;
+}

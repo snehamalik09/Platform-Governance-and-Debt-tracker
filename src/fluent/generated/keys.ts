@@ -129,6 +129,26 @@ declare global {
                         table: 'sys_script_include'
                         id: '715b5948dcd149229c67f2f4c60feff6'
                     }
+                    sp_column_gov_copilot_dashboard: {
+                        table: 'sp_column'
+                        id: '03e3ac2139f24a4bbafb43f265243b79'
+                    }
+                    sp_container_gov_copilot_dashboard: {
+                        table: 'sp_container'
+                        id: '52ed4ba175574a0abd6202c7b881ea91'
+                    }
+                    sp_instance_gov_copilot_dashboard: {
+                        table: 'sp_instance'
+                        id: 'd1a70aaa82f14ec4bcfd48b044a3ad67'
+                    }
+                    sp_row_gov_copilot_dashboard: {
+                        table: 'sp_row'
+                        id: 'cd761c25b0fa4469ba6f3e0b3e4c7230'
+                    }
+                    sp_widget_gov_copilot_dashboard: {
+                        table: 'sp_widget'
+                        id: '5acc46c6d52c4714bad311ecb0b0737c'
+                    }
                     ui_action_run_scan_now: {
                         table: 'sys_ui_action'
                         id: '5ab5f12ecb814274bbfe7b598ee0c6d5'
@@ -831,6 +851,13 @@ declare global {
                             name: 'x_gov_copilot_finding'
                             element: 'x_gov_copilot_remediation_status'
                             value: 'open'
+                        }
+                    },
+                    {
+                        table: 'sp_page'
+                        id: '939244d5363343b3ac78e83abf01ad5e'
+                        key: {
+                            id: 'gov_copilot_dashboard'
                         }
                     },
                     {
