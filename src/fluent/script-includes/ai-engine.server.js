@@ -111,6 +111,7 @@ GovCopilotAIEngine.prototype = {
         var model = gs.getProperty('x_gov_copilot.ai.model', 'claude-haiku-4-5');
 
         // Build the findings metadata array (metadata only, no PII per AC-N06)
+        var platformVersion = gs.getProperty('glide.buildtag', 'unknown');
         var findingsForPrompt = [];
         for (var i = 0; i < batch.length; i++) {
             var f = batch[i];
@@ -121,7 +122,8 @@ GovCopilotAIEngine.prototype = {
                 severity: f.severity,
                 affected_table: f.affected_table,
                 affected_record_name: f.affected_record_name,
-                affected_count: f.affected_count
+                affected_count: f.affected_count,
+                platform_version: platformVersion
             });
         }
 
