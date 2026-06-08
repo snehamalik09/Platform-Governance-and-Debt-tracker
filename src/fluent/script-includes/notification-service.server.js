@@ -15,6 +15,11 @@ GovCopilotNotificationService.prototype = {
     // Skips silently (with gs.warn) if no recipients are configured.
     // ---------------------------------------------------------------------------
     sendPostScanEmail: function(scanRunSysId) {
+        if (!scanRunSysId) {
+            gs.error('GovCopilotNotificationService: scanRunSysId is required');
+            return;
+        }
+
         var recipients = gs.getProperty('x_gov_copilot.notification.recipients', '');
 
         // Guard: skip if no recipients configured
@@ -69,16 +74,19 @@ GovCopilotNotificationService.prototype = {
         var htmlBody = this._buildHtmlBody(data);
 
         // Build subject line
-        var subject = 'Platform Health Scan Complete — Score: ' + (score !== null && score !== '' ? score : 'N/A') + ' — ' + statusInfo.label;
+        var subject = 'Platform Health Scan Complete - Score: ' + (score !== null && score !== '' ? score : 'N/A') + ' - ' + statusInfo.label;
 
         // Send email
         var email = new GlideEmailOutbound();
         email.setTo(recipients.trim());
         email.setSubject(subject);
         email.setBody(htmlBody);
-        email.send();
-
-        gs.info('GovCopilotNotificationService: email sent for scan ' + scanRunSysId + ' to ' + recipients.trim());
+        try {
+            email.send();
+            gs.info('GovCopilotNotificationService: email sent to ' + recipients);
+        } catch (e) {
+            gs.error('GovCopilotNotificationService: failed to send email — ' + e.message);
+        }
     },
 
     // ---------------------------------------------------------------------------
@@ -182,7 +190,7 @@ GovCopilotNotificationService.prototype = {
             gr.addQuery('x_gov_copilot_scan_run', scanRunSysId);
             gr.addQuery('x_gov_copilot_severity', severities[i]);
             gr.addNotNullQuery('x_gov_copilot_ai_recommendation');
-            gr.setLimit(3 - actions.length);
+            gr.setLimit(10);
             gr.query();
 
             while (gr.next() && actions.length < 3) {
@@ -195,6 +203,7 @@ GovCopilotNotificationService.prototype = {
                         finding: gr.getValue('x_gov_copilot_title') || '',
                         action:  firstLine
                     });
+                    if (actions.length >= 3) { break; }
                 }
             }
         }

@@ -101,6 +101,10 @@ declare global {
                         table: 'sys_script_include'
                         id: '211fb5fd289f4138bab4de76e17f489d'
                     }
+                    script_include_gov_copilot_notification_service: {
+                        table: 'sys_script_include'
+                        id: '88a9fd7a3e3c46de931c02f26d2758d2'
+                    }
                     script_include_gov_copilot_performance_module: {
                         table: 'sys_script_include'
                         id: 'dab7aa9a39674da6a02797048730b12b'
