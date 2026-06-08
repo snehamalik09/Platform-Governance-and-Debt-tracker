@@ -3,3 +3,4 @@
 // This file will grow as imports are added in subsequent tasks.
 export * from './tables/tables.now';
 export * from './sys-properties/sys-properties.now';
+export * from './rest-messages/rest-messages.now';
