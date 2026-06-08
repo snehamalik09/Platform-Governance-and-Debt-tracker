@@ -25,11 +25,11 @@ GovCopilotScanOrchestrator.prototype = {
      * Throws Error if they do not (AC-F03).
      */
     _validateWeights: function() {
-        var security    = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.security',    '25'));
-        var performance = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.performance', '25'));
-        var cmdb        = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.cmdb',        '20'));
-        var integration = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.integration', '15'));
-        var catalog     = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.catalog',     '15'));
+        var security    = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.security',    '25'), 10);
+        var performance = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.performance', '25'), 10);
+        var cmdb        = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.cmdb',        '20'), 10);
+        var integration = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.integration', '15'), 10);
+        var catalog     = parseInt(gs.getProperty('x_gov_copilot.scoring.weight.catalog',     '15'), 10);
 
         var total = security + performance + cmdb + integration + catalog;
         if (total !== 100) {
@@ -81,7 +81,7 @@ GovCopilotScanOrchestrator.prototype = {
         countAgg.query();
         var scanNum = 1;
         if (countAgg.next()) {
-            scanNum = parseInt(countAgg.getAggregate('COUNT')) + 1;
+            scanNum = parseInt(countAgg.getAggregate('COUNT'), 10) + 1;
         }
         var dateStr = gs.nowDate();
         var numStr = scanNum < 10 ? '00' + scanNum : (scanNum < 100 ? '0' + scanNum : '' + scanNum);

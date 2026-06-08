@@ -35,13 +35,17 @@ GovCopilotProgressWorker.prototype = {
      */
     _runModule: function(moduleClass, domain, scanRunSysId) {
         try {
-            var module = eval('new ' + moduleClass + '()');
+            var ctor = global[moduleClass];
+            if (!ctor) {
+                throw new Error('GovCopilotProgressWorker: module class not found: ' + moduleClass);
+            }
+            var module = new ctor();
             var findingCount = module.execute(scanRunSysId);
 
             // Increment modules_completed
             var sr = new GlideRecord('x_gov_copilot_scan_run');
             if (sr.get(scanRunSysId)) {
-                var completed = parseInt(sr.getValue('x_gov_copilot_modules_completed') || '0') + 1;
+                var completed = parseInt(sr.getValue('x_gov_copilot_modules_completed') || '0', 10) + 1;
                 sr.setValue('x_gov_copilot_modules_completed', completed);
                 sr.update();
             }
@@ -53,7 +57,7 @@ GovCopilotProgressWorker.prototype = {
             // Increment modules_failed
             var srFail = new GlideRecord('x_gov_copilot_scan_run');
             if (srFail.get(scanRunSysId)) {
-                var failed = parseInt(srFail.getValue('x_gov_copilot_modules_failed') || '0') + 1;
+                var failed = parseInt(srFail.getValue('x_gov_copilot_modules_failed') || '0', 10) + 1;
                 srFail.setValue('x_gov_copilot_modules_failed', failed);
                 srFail.update();
             }
@@ -78,7 +82,7 @@ GovCopilotProgressWorker.prototype = {
         // Calculate duration
         var started = new GlideDateTime(sr.getValue('x_gov_copilot_started_at'));
         var now = new GlideDateTime();
-        var diffMs = GlideDateTime.subtract(started, now).getNumericValue();
+        var diffMs = GlideDateTime.subtract(now, started).getNumericValue();
         var durationSeconds = Math.round(diffMs / 1000);
 
         if (anyFailed) {
@@ -94,7 +98,13 @@ GovCopilotProgressWorker.prototype = {
             // Re-fetch record after scoring engine updates it
             sr = new GlideRecord('x_gov_copilot_scan_run');
             if (!sr.get(scanRunSysId)) {
-                gs.error('GovCopilotProgressWorker: could not reload scan_run ' + scanRunSysId + ' after scoring.');
+                gs.error('GovCopilotProgressWorker: could not reload scan_run after scoring — ' + scanRunSysId);
+                var fallback = new GlideRecord('x_gov_copilot_scan_run');
+                if (fallback.get(scanRunSysId)) {
+                    fallback.setValue('x_gov_copilot_status', 'partial');
+                    fallback.setValue('x_gov_copilot_completed_at', new GlideDateTime());
+                    fallback.update();
+                }
                 return;
             }
             sr.setValue('x_gov_copilot_status', 'completed');
