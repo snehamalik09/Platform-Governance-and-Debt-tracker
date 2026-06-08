@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:g="glide" xmlns:j2="null" xmlns:g2="null">
+<html>
+<head>
+  <title>Platform Governance &amp; Health Copilot — Admin Report</title>
+  <style>
+    /* ---- Base styles ---- */
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #222;
+      margin: 20px;
+      background: #fff;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px 0; }
+    h2 { font-size: 15px; margin: 24px 0 8px 0; border-bottom: 2px solid #333; padding-bottom: 4px; }
+    h3 { font-size: 13px; margin: 16px 0 6px 0; color: #444; }
+    p  { margin: 2px 0 8px 0; }
+
+    /* ---- Tables ---- */
+    table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
+    th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; font-weight: bold; }
+    tr:nth-child(even) { background: #fafafa; }
+
+    /* ---- Severity badges ---- */
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+    .badge-critical { background: #dc3545; color: #fff; }
+    .badge-high     { background: #fd7e14; color: #fff; }
+    .badge-medium   { background: #ffc107; color: #000; }
+    .badge-low      { background: #28a745; color: #fff; }
+
+    /* ---- Status badges ---- */
+    .status-open         { color: #dc3545; font-weight: bold; }
+    .status-in_progress  { color: #fd7e14; font-weight: bold; }
+    .status-resolved     { color: #28a745; font-weight: bold; }
+    .status-accepted_risk{ color: #6c757d; font-weight: bold; }
+
+    /* ---- Delta indicator ---- */
+    .delta-positive { color: #28a745; }
+    .delta-negative { color: #dc3545; }
+    .delta-neutral  { color: #6c757d; }
+
+    /* ---- Score colours ---- */
+    .score-good    { color: #28a745; font-weight: bold; }
+    .score-warning { color: #ffc107; font-weight: bold; }
+    .score-poor    { color: #dc3545; font-weight: bold; }
+
+    /* ---- AI text blocks ---- */
+    .ai-text { white-space: pre-wrap; word-break: break-word; max-width: 280px; }
+
+    /* ---- No-print toolbar ---- */
+    .no-print {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-print {
+      background: #0070d2;
+      color: #fff;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-print:hover { background: #005fb2; }
+    .btn-back {
+      color: #0070d2;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .btn-back:hover { text-decoration: underline; }
+
+    /* ---- Print overrides ---- */
+    @media print {
+      .no-print   { display: none !important; }
+      .page-break { page-break-before: always; }
+      body        { margin: 10px; font-size: 10px; }
+      h1          { font-size: 16px; }
+      h2          { font-size: 12px; }
+      h3          { font-size: 11px; }
+      .ai-text    { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- =====================================================================
+     TOOLBAR (hidden when printing)
+     ===================================================================== -->
+<div class="no-print">
+  <button class="btn-print" onclick="window.print()">&#128438; Print Report</button>
+  <a class="btn-back" href="/sp?id=gov_copilot_dashboard">&#8592; Back to Dashboard</a>
+</div>
+
+<!-- =====================================================================
+     REPORT HEADER
+     ===================================================================== -->
+<h1>Platform Governance &amp; Health Copilot &#8212; Admin Report</h1>
+<p>
+  Generated: <strong><g:evaluate>new GlideDateTime().getDisplayValue()</g:evaluate></strong>
+  &nbsp;|&nbsp;
+  Instance: <strong><g:evaluate>gs.getProperty('instance_name', gs.getProperty('glide.installation.name', 'ServiceNow'))</g:evaluate></strong>
+</p>
+
+<!-- =====================================================================
+     STEP 1 — Resolve scan_sys_id
+     ===================================================================== -->
+<g:evaluate var="jvar_scan_sys_id">
+  var paramId = request.getParameter('scan_sys_id');
+  if (paramId &amp;&amp; paramId.length === 32) {
+    paramId;
+  } else {
+    // Fallback: latest completed or partial scan
+    var srLookup = new GlideRecord('x_gov_copilot_scan_run');
+    srLookup.addEncodedQuery('x_gov_copilot_statusINcompleted,partial');
+    srLookup.orderByDesc('x_gov_copilot_started_at');
+    srLookup.setLimit(1);
+    srLookup.query();
+    if (srLookup.next()) {
+      srLookup.getUniqueValue();
+    } else {
+      '';
+    }
+  }
+</g:evaluate>
+
+<!-- =====================================================================
+     STEP 2 — Load scan summary fields
+     ===================================================================== -->
+<g:evaluate var="jvar_scan_loaded">
+  if (!jvar_scan_sys_id) {
+    false;
+  } else {
+    var srMain = new GlideRecord('x_gov_copilot_scan_run');
+    srMain.get(jvar_scan_sys_id);
+    // Expose individual vars via separate evaluates below
+    true;
+  }
+</g:evaluate>
+
+<j:if test="${jvar_scan_loaded == 'false'}">
+  <p style="color:#dc3545;font-weight:bold;">No completed or partial scan found. Run a scan first.</p>
+</j:if>
+
+<j:if test="${jvar_scan_loaded != 'false'}">
+
+<!-- Load individual scan fields into named vars so we can display them cleanly -->
+<g:evaluate var="jvar_scan_name">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_name') || sr.getUniqueValue());
+</g:evaluate>
+
+<g:evaluate var="jvar_scan_status">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_status'));
+</g:evaluate>
+
+<g:evaluate var="jvar_scan_started">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_started_at'));
+</g:evaluate>
+
+<g:evaluate var="jvar_scan_completed">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_completed_at'));
+</g:evaluate>
+
+<g:evaluate var="jvar_scan_duration">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  var secs = parseInt(sr.getValue('x_gov_copilot_duration_seconds') || '0', 10);
+  if (secs >= 3600) {
+    Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm ' + (secs % 60) + 's';
+  } else if (secs >= 60) {
+    Math.floor(secs / 60) + 'm ' + (secs % 60) + 's';
+  } else {
+    secs + 's';
+  }
+</g:evaluate>
+
+<g:evaluate var="jvar_overall_score">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  sr.getValue('x_gov_copilot_overall_health_score') || 'N/A';
+</g:evaluate>
+
+<g:evaluate var="jvar_total_findings">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  sr.getValue('x_gov_copilot_total_findings') || '0';
+</g:evaluate>
+
+<g:evaluate var="jvar_critical_count">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  sr.getValue('x_gov_copilot_critical_count') || '0';
+</g:evaluate>
+
+<g:evaluate var="jvar_high_count">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  sr.getValue('x_gov_copilot_high_count') || '0';
+</g:evaluate>
+
+<g:evaluate var="jvar_medium_count">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  sr.getValue('x_gov_copilot_medium_count') || '0';
+</g:evaluate>
+
+<g:evaluate var="jvar_low_count">
+  var sr = new GlideRecord('x_gov_copilot_scan_run');
+  sr.get(jvar_scan_sys_id);
+  sr.getValue('x_gov_copilot_low_count') || '0';
+</g:evaluate>
+
+<!-- =====================================================================
+     SECTION 1 — SCAN SUMMARY
+     ===================================================================== -->
+<h2>1. Scan Summary</h2>
+
+<table style="max-width:600px;">
+  <tr><th style="width:200px;">Field</th><th>Value</th></tr>
+  <tr><td>Scan Name</td><td>${jvar_scan_name}</td></tr>
+  <tr><td>Status</td><td>${jvar_scan_status}</td></tr>
+  <tr><td>Started At</td><td>${jvar_scan_started}</td></tr>
+  <tr><td>Completed At</td><td>${jvar_scan_completed}</td></tr>
+  <tr><td>Duration</td><td>${jvar_scan_duration}</td></tr>
+  <tr>
+    <td>Overall Health Score</td>
+    <td>
+      <g:evaluate var="jvar_score_class">
+        var s = parseInt(jvar_overall_score, 10);
+        if (isNaN(s)) { 'delta-neutral'; }
+        else if (s >= 70) { 'score-good'; }
+        else if (s >= 40) { 'score-warning'; }
+        else { 'score-poor'; }
+      </g:evaluate>
+      <span class="${jvar_score_class}">${jvar_overall_score}</span>
+      <j:if test="${jvar_overall_score != 'N/A'}"> / 100</j:if>
+    </td>
+  </tr>
+  <tr><td>Total Findings</td><td>${jvar_total_findings}</td></tr>
+  <tr>
+    <td>Finding Breakdown</td>
+    <td>
+      <span class="badge badge-critical">${jvar_critical_count} Critical</span>
+      &nbsp;
+      <span class="badge badge-high">${jvar_high_count} High</span>
+      &nbsp;
+      <span class="badge badge-medium">${jvar_medium_count} Medium</span>
+      &nbsp;
+      <span class="badge badge-low">${jvar_low_count} Low</span>
+    </td>
+  </tr>
+</table>
+
+<!-- =====================================================================
+     SECTION 2 — DOMAIN SCORE BREAKDOWN
+     ===================================================================== -->
+<h2>2. Domain Score Breakdown</h2>
+
+<g:evaluate var="jvar_domain_scores">
+  var scores = [];
+  var ds = new GlideRecord('x_gov_copilot_domain_score');
+  ds.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
+  ds.orderBy('x_gov_copilot_domain');
+  ds.query();
+  while (ds.next()) {
+    var delta = parseInt(ds.getValue('x_gov_copilot_score_delta') || '0', 10);
+    var deltaStr = delta > 0 ? '+' + delta : (delta &lt; 0 ? '' + delta : '0');
+    var deltaClass = delta > 0 ? 'delta-positive' : (delta &lt; 0 ? 'delta-negative' : 'delta-neutral');
+    var sc = parseInt(ds.getValue('x_gov_copilot_score') || '0', 10);
+    var scoreClass = sc >= 70 ? 'score-good' : (sc >= 40 ? 'score-warning' : 'score-poor');
+
+    // Per-domain severity counts from finding table
+    var domainName = ds.getValue('x_gov_copilot_domain');
+    var fc = { critical: 0, high: 0, medium: 0, low: 0 };
+    var fq = new GlideRecord('x_gov_copilot_finding');
+    fq.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
+    fq.addQuery('x_gov_copilot_domain', domainName);
+    fq.query();
+    while (fq.next()) {
+      var sev = fq.getValue('x_gov_copilot_severity');
+      if (fc[sev] !== undefined) { fc[sev]++; }
+    }
+
+    scores.push({
+      domain:       gs.htmlEscape(ds.getDisplayValue('x_gov_copilot_domain')),
+      score:        sc,
+      scoreClass:   scoreClass,
+      prevScore:    ds.getValue('x_gov_copilot_previous_score') || 'N/A',
+      delta:        deltaStr,
+      deltaClass:   deltaClass,
+      findingCount: ds.getValue('x_gov_copilot_finding_count') || '0',
+      critical:     fc.critical,
+      high:         fc.high,
+      medium:       fc.medium,
+      low:          fc.low,
+    });
+  }
+  scores;
+</g:evaluate>
+
+<j:if test="${jvar_domain_scores.size() == 0}">
+  <p><em>No domain scores recorded for this scan.</em></p>
+</j:if>
+
+<j:if test="${jvar_domain_scores.size() > 0}">
+<table>
+  <tr>
+    <th>Domain</th>
+    <th>Score</th>
+    <th>Prev. Score</th>
+    <th>Delta</th>
+    <th>Findings</th>
+    <th>Critical</th>
+    <th>High</th>
+    <th>Medium</th>
+    <th>Low</th>
+  </tr>
+  <j:forEach items="${jvar_domain_scores}" var="jvar_ds">
+  <tr>
+    <td>${jvar_ds.domain}</td>
+    <td><span class="${jvar_ds.scoreClass}">${jvar_ds.score}</span></td>
+    <td>${jvar_ds.prevScore}</td>
+    <td><span class="${jvar_ds.deltaClass}">${jvar_ds.delta}</span></td>
+    <td>${jvar_ds.findingCount}</td>
+    <td><j:if test="${jvar_ds.critical > 0}"><span class="badge badge-critical">${jvar_ds.critical}</span></j:if><j:if test="${jvar_ds.critical == 0}">0</j:if></td>
+    <td><j:if test="${jvar_ds.high > 0}"><span class="badge badge-high">${jvar_ds.high}</span></j:if><j:if test="${jvar_ds.high == 0}">0</j:if></td>
+    <td><j:if test="${jvar_ds.medium > 0}"><span class="badge badge-medium">${jvar_ds.medium}</span></j:if><j:if test="${jvar_ds.medium == 0}">0</j:if></td>
+    <td><j:if test="${jvar_ds.low > 0}"><span class="badge badge-low">${jvar_ds.low}</span></j:if><j:if test="${jvar_ds.low == 0}">0</j:if></td>
+  </tr>
+  </j:forEach>
+</table>
+</j:if>
+
+<!-- =====================================================================
+     SECTION 3 — FINDINGS BY DOMAIN
+     Build recommendation map first (finding sys_id -> rec fields),
+     then load findings grouped by domain in canonical order.
+     ===================================================================== -->
+<h2>3. Findings by Domain</h2>
+
+<!-- Build recommendation lookup map keyed by finding sys_id -->
+<g:evaluate var="jvar_rec_map">
+  var recMap = {};
+  var rec = new GlideRecord('x_gov_copilot_recommendation');
+  // Get all recommendations linked to findings in this scan
+  // (via finding reference on recommendation table)
+  var findingSysIds = [];
+  var fAll = new GlideRecord('x_gov_copilot_finding');
+  fAll.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
+  fAll.query();
+  while (fAll.next()) {
+    findingSysIds.push(fAll.getUniqueValue());
+  }
+
+  if (findingSysIds.length > 0) {
+    rec.addQuery('x_gov_copilot_finding', 'IN', findingSysIds.join(','));
+    rec.query();
+    while (rec.next()) {
+      var findSysId = rec.getValue('x_gov_copilot_finding');
+      recMap[findSysId] = {
+        businessImpact:     gs.htmlEscape(rec.getValue('x_gov_copilot_business_impact') || ''),
+        technicalImpact:    gs.htmlEscape(rec.getValue('x_gov_copilot_technical_impact') || ''),
+        remediationSteps:   gs.htmlEscape(rec.getValue('x_gov_copilot_remediation_steps') || ''),
+        expectedBenefit:    gs.htmlEscape(rec.getValue('x_gov_copilot_expected_benefit') || ''),
+        estimatedEffort:    gs.htmlEscape(rec.getDisplayValue('x_gov_copilot_estimated_effort') || ''),
+        aiStatus:           gs.htmlEscape(rec.getDisplayValue('x_gov_copilot_ai_status') || ''),
+      };
+    }
+  }
+  recMap;
+</g:evaluate>
+
+<!-- Load findings grouped by domain in canonical order -->
+<g:evaluate var="jvar_findings_by_domain">
+  var domainOrder = ['performance', 'security', 'integration', 'catalog', 'cmdb'];
+  var domainLabels = {
+    performance: 'Performance',
+    security:    'Security',
+    integration: 'Integration',
+    catalog:     'Catalog',
+    cmdb:        'CMDB'
+  };
+  // Severity sort order
+  var sevOrder = { critical: 1, high: 2, medium: 3, low: 4 };
+
+  var grouped = [];
+  for (var d = 0; d &lt; domainOrder.length; d++) {
+    var domKey = domainOrder[d];
+    var findings = [];
+
+    var gr = new GlideRecord('x_gov_copilot_finding');
+    gr.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
+    gr.addQuery('x_gov_copilot_domain', domKey);
+    gr.query();
+    while (gr.next()) {
+      var fSysId = gr.getUniqueValue();
+      var recData = jvar_rec_map[fSysId] || {
+        businessImpact: '', technicalImpact: '', remediationSteps: '',
+        expectedBenefit: '', estimatedEffort: '', aiStatus: 'N/A'
+      };
+
+      var remStatus = gr.getValue('x_gov_copilot_remediation_status') || 'open';
+      var remStatusDisplay = gs.htmlEscape(gr.getDisplayValue('x_gov_copilot_remediation_status') || 'Open');
+      var remStatusClass = 'status-' + remStatus.replace(/ /g, '_');
+
+      findings.push({
+        sys_id:           fSysId,
+        title:            gs.htmlEscape(gr.getValue('x_gov_copilot_title') || ''),
+        findingType:      gs.htmlEscape(gr.getValue('x_gov_copilot_finding_type') || ''),
+        severity:         gr.getValue('x_gov_copilot_severity') || 'low',
+        severityDisplay:  gs.htmlEscape(gr.getDisplayValue('x_gov_copilot_severity') || 'Low'),
+        affectedTable:    gs.htmlEscape(gr.getValue('x_gov_copilot_affected_table') || ''),
+        affectedRecord:   gs.htmlEscape(gr.getValue('x_gov_copilot_affected_record_name') || ''),
+        remStatus:        remStatus,
+        remStatusDisplay: remStatusDisplay,
+        remStatusClass:   remStatusClass,
+        sevOrder:         sevOrder[gr.getValue('x_gov_copilot_severity')] || 99,
+        businessImpact:   recData.businessImpact,
+        technicalImpact:  recData.technicalImpact,
+        remediationSteps: recData.remediationSteps,
+        expectedBenefit:  recData.expectedBenefit,
+        estimatedEffort:  recData.estimatedEffort,
+        aiStatus:         recData.aiStatus,
+      });
+    }
+
+    // Sort by severity within domain (Critical first)
+    findings.sort(function(a, b) { return a.sevOrder - b.sevOrder; });
+
+    if (findings.length > 0) {
+      grouped.push({
+        domainKey:   domKey,
+        domainLabel: domainLabels[domKey],
+        findings:    findings,
+      });
+    }
+  }
+  grouped;
+</g:evaluate>
+
+<j:if test="${jvar_findings_by_domain.size() == 0}">
+  <p><em>No findings recorded for this scan.</em></p>
+</j:if>
+
+<j:forEach items="${jvar_findings_by_domain}" var="jvar_domain_group">
+
+<div class="page-break">
+<h3>Domain: ${jvar_domain_group.domainLabel} (${jvar_domain_group.findings.size()} findings)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:70px;">Severity</th>
+      <th style="width:180px;">Title</th>
+      <th style="width:100px;">Finding Type</th>
+      <th style="width:90px;">Affected Table</th>
+      <th style="width:110px;">Affected Record</th>
+      <th style="width:90px;">Remediation Status</th>
+      <th>AI: Business Impact</th>
+      <th>AI: Technical Impact</th>
+      <th>AI: Remediation Steps</th>
+      <th>AI: Expected Benefit</th>
+    </tr>
+  </thead>
+  <tbody>
+  <j:forEach items="${jvar_domain_group.findings}" var="jvar_f">
+  <tr>
+    <td>
+      <span class="badge badge-${jvar_f.severity}">${jvar_f.severityDisplay}</span>
+    </td>
+    <td>${jvar_f.title}</td>
+    <td>${jvar_f.findingType}</td>
+    <td>${jvar_f.affectedTable}</td>
+    <td>${jvar_f.affectedRecord}</td>
+    <td>
+      <span class="${jvar_f.remStatusClass}">${jvar_f.remStatusDisplay}</span>
+    </td>
+    <td>
+      <j:if test="${jvar_f.businessImpact != ''}">
+        <span class="ai-text">${jvar_f.businessImpact}</span>
+      </j:if>
+      <j:if test="${jvar_f.businessImpact == ''}">
+        <span style="color:#999;font-style:italic;">
+          <j:if test="${jvar_f.aiStatus == 'pending'}">AI pending</j:if>
+          <j:if test="${jvar_f.aiStatus != 'pending'}">—</j:if>
+        </span>
+      </j:if>
+    </td>
+    <td>
+      <j:if test="${jvar_f.technicalImpact != ''}">
+        <span class="ai-text">${jvar_f.technicalImpact}</span>
+      </j:if>
+      <j:if test="${jvar_f.technicalImpact == ''}">
+        <span style="color:#999;font-style:italic;">—</span>
+      </j:if>
+    </td>
+    <td>
+      <j:if test="${jvar_f.remediationSteps != ''}">
+        <span class="ai-text">${jvar_f.remediationSteps}</span>
+      </j:if>
+      <j:if test="${jvar_f.remediationSteps == ''}">
+        <span style="color:#999;font-style:italic;">—</span>
+      </j:if>
+    </td>
+    <td>
+      <j:if test="${jvar_f.expectedBenefit != ''}">
+        <span class="ai-text">${jvar_f.expectedBenefit}</span>
+        <j:if test="${jvar_f.estimatedEffort != ''}">
+          <br/><small style="color:#555;">Effort: ${jvar_f.estimatedEffort}</small>
+        </j:if>
+      </j:if>
+      <j:if test="${jvar_f.expectedBenefit == ''}">
+        <span style="color:#999;font-style:italic;">—</span>
+      </j:if>
+    </td>
+  </tr>
+  </j:forEach>
+  </tbody>
+</table>
+</div>
+
+</j:forEach>
+
+<!-- =====================================================================
+     REPORT FOOTER
+     ===================================================================== -->
+<hr style="margin-top:30px;"/>
+<p style="color:#999;font-size:11px;">
+  Platform Governance &amp; Health Copilot &mdash; Admin Report &mdash;
+  Scan ID: ${jvar_scan_sys_id} &mdash;
+  Report generated: <g:evaluate>new GlideDateTime().getDisplayValue()</g:evaluate>
+</p>
+
+</j:if><!-- end jvar_scan_loaded check -->
+
+</body>
+</html>
+</j:jelly>

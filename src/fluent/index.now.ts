@@ -18,3 +18,4 @@ export * from './ui-actions/run-scan-now.now';
 export * from './script-includes/scan-endpoint.now';
 export * from './sp-widgets/gov-copilot-dashboard.now';
 export * from './sp-widgets/gov-copilot-dashboard-page.now';
+export * from './ui-pages/gov-copilot-admin-report.now';

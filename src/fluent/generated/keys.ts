@@ -393,6 +393,13 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_page'
+                        id: '3820b6b58e644ca69ac946c1112d333c'
+                        key: {
+                            name: 'gov_copilot_admin_report'
+                        }
+                    },
+                    {
                         table: 'sys_choice'
                         id: '3cd230696df04647a484cdf8f5dc4145'
                         key: {
