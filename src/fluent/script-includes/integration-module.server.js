@@ -93,23 +93,29 @@ GovCopilotIntegrationModule.prototype = {
         var count = 0;
         var ninetyDaysAgo = new GlideDateTime();
         ninetyDaysAgo.addDaysUTC(-90);
-        // Find REST messages with no recent outbound calls in ECC queue
+
+        // Pre-build set of REST messages that have had recent calls
+        var usedMessages = {};
+        var log = new GlideRecord('sys_rest_message_fn_log');
+        log.addQuery('sys_created_on', '>', ninetyDaysAgo.getValue());
+        // No limit on pre-aggregation query — we need all recent calls
+        log.query();
+        while (log.next()) {
+            var msgSysId = log.getValue('rest_message');
+            if (msgSysId) usedMessages[msgSysId] = true;
+        }
+
+        // Flag REST messages with no recent call log entries
         var gr = new GlideRecord('sys_rest_message');
         gr.addActiveQuery();
         gr.setLimit(this.batchSize);
         gr.query();
         while (gr.next()) {
-            var msgName = gr.getValue('name');
-            var eccGr = new GlideRecord('ecc_queue');
-            eccGr.addQuery('agent', 'CONTAINS', msgName);
-            eccGr.addQuery('sys_created_on', '>', ninetyDaysAgo.getValue());
-            eccGr.setLimit(1);
-            eccGr.query();
-            if (!eccGr.next()) {
+            if (!usedMessages[gr.getUniqueValue()]) {
                 this._writeFinding(scanRunSysId, 'rest_unused', 'medium', 'sys_rest_message',
-                    gr.getUniqueValue(), msgName,
+                    gr.getUniqueValue(), gr.getDisplayValue('name'),
                     'REST message has not been used in 90 days',
-                    'Outbound REST message "' + msgName + '" has no recorded outbound calls in the last 90 days. Consider deactivating unused integrations to reduce attack surface.');
+                    'Outbound REST message "' + gr.getDisplayValue('name') + '" has no recorded outbound calls in the last 90 days. Consider deactivating unused integrations to reduce attack surface.');
                 count++;
             }
         }

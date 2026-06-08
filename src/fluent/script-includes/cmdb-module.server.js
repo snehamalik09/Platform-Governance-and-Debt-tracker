@@ -70,9 +70,9 @@ GovCopilotCMDBModule.prototype = {
         var gr = new GlideRecord('cmdb_ci');
         gr.addActiveQuery();
         gr.addNullQuery('assigned_to');
-        var qc = gr.addQuery('sys_class_name', 'cmdb_ci_server');
-        qc.addOrCondition('sys_class_name', 'cmdb_ci_netgear');
-        qc.addOrCondition('sys_class_name', 'STARTSWITH', 'cmdb_ci_net');
+        // Use INSTANCEOF to include all server and network device subclasses
+        var classQuery = gr.addQuery('sys_class_name', 'INSTANCEOF', 'cmdb_ci_server');
+        classQuery.addOrCondition('sys_class_name', 'INSTANCEOF', 'cmdb_ci_network_device');
         gr.setLimit(this.batchSize);
         gr.query();
         while (gr.next()) {
@@ -105,20 +105,28 @@ GovCopilotCMDBModule.prototype = {
 
     _findNoRelationshipCIs: function(scanRunSysId) {
         var count = 0;
+
+        // Pre-build set of all CIs that appear in at least one relationship
+        var cisWithRelationships = {};
+        var rel = new GlideRecord('cmdb_rel_ci');
+        // No limit — we need all relationships for accurate detection
+        rel.query();
+        while (rel.next()) {
+            var p = rel.getValue('parent');
+            var c = rel.getValue('child');
+            if (p) cisWithRelationships[p] = true;
+            if (c) cisWithRelationships[c] = true;
+        }
+
+        // Find active CIs not in the relationship set
         var gr = new GlideRecord('cmdb_ci');
         gr.addActiveQuery();
         gr.setLimit(this.batchSize);
         gr.query();
         while (gr.next()) {
-            var ciSysId = gr.getUniqueValue();
-            var rel = new GlideRecord('cmdb_rel_ci');
-            var qc = rel.addQuery('parent', ciSysId);
-            qc.addOrCondition('child', ciSysId);
-            rel.setLimit(1);
-            rel.query();
-            if (!rel.next()) {
+            if (!cisWithRelationships[gr.getUniqueValue()]) {
                 this._writeFinding(scanRunSysId, 'cmdb_no_relationships', 'medium', 'cmdb_ci',
-                    ciSysId, gr.getDisplayValue('name'),
+                    gr.getUniqueValue(), gr.getDisplayValue('name'),
                     'CI has no CMDB relationships',
                     'CI "' + gr.getDisplayValue('name') + '" has no parent or child relationships in the CMDB. Isolated CIs reduce the accuracy of impact analysis during incidents.');
                 count++;

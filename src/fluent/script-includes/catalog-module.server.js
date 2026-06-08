@@ -40,7 +40,7 @@ GovCopilotCatalogModule.prototype = {
         gr.query();
         while (gr.next()) {
             var itemSysId = gr.getUniqueValue();
-            var reqGr = new GlideRecord('sc_request');
+            var reqGr = new GlideRecord('sc_req_item');
             reqGr.addQuery('cat_item', itemSysId);
             reqGr.setLimit(1);
             reqGr.query();

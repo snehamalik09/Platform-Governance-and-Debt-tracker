@@ -36,34 +36,34 @@ GovCopilotSecurityModule.prototype = {
     /** ACL: No Read Control — tables with no 'read' ACL */
     _findACLNoReadControl: function(scanRunSysId) {
         var count = 0;
-        // Get all tables that have at least one ACL
+        // Build set of tables that DO have a read ACL
         var tablesWithReadACL = {};
-        var acl = new GlideRecord('sys_security_acl');
-        acl.addQuery('operation', 'read');
-        acl.addActiveQuery();
-        acl.setLimit(this.batchSize * 2);
-        acl.query();
-        while (acl.next()) {
-            tablesWithReadACL[acl.getValue('name')] = true;
+        var readAcl = new GlideRecord('sys_security_acl');
+        readAcl.addQuery('operation', 'read');
+        readAcl.addActiveQuery();
+        // No setLimit — we need all read ACLs to avoid false positives
+        readAcl.query();
+        while (readAcl.next()) {
+            tablesWithReadACL[readAcl.getValue('name')] = true;
         }
-        // Find tables that have ACLs but no read ACL
-        var allTables = {};
-        var acl2 = new GlideRecord('sys_security_acl');
-        acl2.addActiveQuery();
-        acl2.setLimit(this.batchSize * 2);
-        acl2.query();
-        while (acl2.next()) {
-            var tName = acl2.getValue('name');
-            if (!tablesWithReadACL[tName] && !allTables[tName]) {
-                allTables[tName] = { sysId: acl2.getUniqueValue(), display: tName };
+
+        // Find tables that have non-read ACLs but no read ACL
+        var reported = {};
+        var otherAcl = new GlideRecord('sys_security_acl');
+        otherAcl.addQuery('operation', '!=', 'read');
+        otherAcl.addActiveQuery();
+        otherAcl.setLimit(this.batchSize * 5);
+        otherAcl.query();
+        while (otherAcl.next()) {
+            var tName = otherAcl.getValue('name') || '';
+            if (!tablesWithReadACL[tName] && !reported[tName]) {
+                reported[tName] = true;
+                this._writeFinding(scanRunSysId, 'acl_no_read_control', 'critical', 'sys_security_acl',
+                    otherAcl.getUniqueValue(), tName,
+                    'Table has no Read ACL',
+                    'Table "' + tName + '" has ACL entries but no ACL for the "read" operation. Unauthenticated or unprivileged users may be able to read records from this table.');
+                count++;
             }
-        }
-        for (var tbl in allTables) {
-            this._writeFinding(scanRunSysId, 'acl_no_read_control', 'critical', 'sys_security_acl',
-                allTables[tbl].sysId, tbl,
-                'Table has no Read ACL',
-                'Table "' + tbl + '" has ACL entries but no ACL for the "read" operation. Unauthenticated or unprivileged users may be able to read records from this table.');
-            count++;
         }
         return count;
     },
@@ -216,7 +216,7 @@ GovCopilotSecurityModule.prototype = {
             this._writeFinding(scanRunSysId, 'integration_unencrypted', 'high', 'sys_rest_message',
                 gr.getUniqueValue(), gr.getDisplayValue('name'),
                 'REST message endpoint uses unencrypted HTTP',
-                'Outbound REST message "' + gr.getDisplayValue('name') + '" connects to "' + gr.getValue('rest_endpoint') + '" over HTTP (not HTTPS). All integrations must use encrypted connections.');
+                'Outbound REST message "' + gr.getDisplayValue('name') + '" uses an unencrypted HTTP endpoint. All integrations must use encrypted HTTPS connections.');
             count++;
         }
         return count;
