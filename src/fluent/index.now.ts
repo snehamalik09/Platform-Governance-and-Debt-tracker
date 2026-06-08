@@ -11,3 +11,5 @@ export * from './script-includes/integration-module.now';
 export * from './script-includes/catalog-module.now';
 export * from './script-includes/cmdb-module.now';
 export * from './script-includes/ai-engine.now';
+export * from './script-includes/scan-orchestrator.now';
+export * from './script-includes/progress-worker.now';

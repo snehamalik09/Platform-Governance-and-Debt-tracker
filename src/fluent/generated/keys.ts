@@ -105,6 +105,14 @@ declare global {
                         table: 'sys_script_include'
                         id: 'dab7aa9a39674da6a02797048730b12b'
                     }
+                    script_include_gov_copilot_progress_worker: {
+                        table: 'sys_script_include'
+                        id: 'bb8047875b5e4ce39d3ce66cb31cba27'
+                    }
+                    script_include_gov_copilot_scan_orchestrator: {
+                        table: 'sys_script_include'
+                        id: 'd12dee43f1b7432c97e6db00dceb2846'
+                    }
                     script_include_gov_copilot_scoring_engine: {
                         table: 'sys_script_include'
                         id: 'dd6620b49c7b4bb39b71a4dba83e3333'
