@@ -113,6 +113,10 @@ declare global {
                         table: 'sys_script_include'
                         id: 'bb8047875b5e4ce39d3ce66cb31cba27'
                     }
+                    script_include_gov_copilot_scan_endpoint: {
+                        table: 'sys_script_include'
+                        id: '92b9db1f2f474f42bc0558120d22fc1b'
+                    }
                     script_include_gov_copilot_scan_orchestrator: {
                         table: 'sys_script_include'
                         id: 'd12dee43f1b7432c97e6db00dceb2846'
@@ -124,6 +128,10 @@ declare global {
                     script_include_gov_copilot_security_module: {
                         table: 'sys_script_include'
                         id: '715b5948dcd149229c67f2f4c60feff6'
+                    }
+                    ui_action_run_scan_now: {
+                        table: 'sys_ui_action'
+                        id: '5ab5f12ecb814274bbfe7b598ee0c6d5'
                     }
                 }
                 composite: [

@@ -14,3 +14,5 @@ export * from './script-includes/ai-engine.now';
 export * from './script-includes/scan-orchestrator.now';
 export * from './script-includes/progress-worker.now';
 export * from './script-includes/notification-service.now';
+export * from './ui-actions/run-scan-now.now';
+export * from './script-includes/scan-endpoint.now';
