@@ -4,3 +4,4 @@
 export * from './tables/tables.now';
 export * from './sys-properties/sys-properties.now';
 export * from './rest-messages/rest-messages.now';
+export * from './script-includes/scoring-engine.now';
