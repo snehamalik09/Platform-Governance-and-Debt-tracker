@@ -13,21 +13,19 @@ GovCopilotScanEndpoint.prototype = Object.extendsObject(AbstractAjaxProcessor, {
      *   error                             — on failure
      */
     triggerScan: function() {
+        var item = this.newItem('result');
         if (!gs.hasRole('sysadmin')) {
-            var denied = this.newItem('result');
-            denied.setAttribute('error', 'Access denied. Sysadmin role required.');
+            item.setAttribute('error', 'Access denied. Sysadmin role required.');
             return;
         }
         try {
             var orchestrator = new GovCopilotScanOrchestrator();
             var result = orchestrator.runScan();
-            var item = this.newItem('result');
             item.setAttribute('scanRunSysId', result.scanRunSysId);
             item.setAttribute('progressId', result.progressId);
             item.setAttribute('status', 'started');
         } catch (e) {
-            var errItem = this.newItem('result');
-            errItem.setAttribute('error', e.message || 'Scan failed to start');
+            item.setAttribute('error', e.message || 'Scan failed to start');
         }
     },
 
