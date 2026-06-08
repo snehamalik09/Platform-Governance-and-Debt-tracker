@@ -29,11 +29,15 @@ GovCopilotAIEngine.prototype = {
             return;
         }
 
+        // Read model once — passed down to _buildRequestPayload and _storeRecommendation
+        var model = gs.getProperty('x_gov_copilot.ai.model', 'claude-haiku-4-5');
+
         // Collect all findings for this scan run
         var findings = [];
         var gr = new GlideRecord('x_gov_copilot_finding');
         gr.addQuery('x_gov_copilot_scan_run', scanRunSysId);
         gr.query();
+        gr.setLimit(500);
         while (gr.next()) {
             findings.push({
                 sys_id: gr.getUniqueValue(),
@@ -45,6 +49,10 @@ GovCopilotAIEngine.prototype = {
                 affected_record_name: gr.getValue('x_gov_copilot_affected_record') || '',
                 affected_count: gr.getValue('x_gov_copilot_affected_count') || 0
             });
+        }
+
+        if (findings.length >= 500) {
+            gs.warn('GovCopilotAIEngine: findings capped at 500 — some findings will not have AI recommendations');
         }
 
         if (findings.length === 0) {
@@ -67,11 +75,10 @@ GovCopilotAIEngine.prototype = {
         // Process each batch
         for (var b = 0; b < batches.length; b++) {
             var currentBatch = batches[b];
-            var payload = this._buildRequestPayload(currentBatch);
+            var payload = this._buildRequestPayload(currentBatch, model);
 
             try {
                 var recommendations = this._callClaudeAPI(payload);
-                var model = gs.getProperty('x_gov_copilot.ai.model', 'claude-haiku-4-5');
 
                 // Match recommendations to findings by finding_id
                 var recMap = {};
@@ -107,9 +114,7 @@ GovCopilotAIEngine.prototype = {
     // Constructs the Claude API request JSON string for a batch of findings.
     // Only metadata is included — no PII, no field values. (AC-N06)
     // ---------------------------------------------------------------------------
-    _buildRequestPayload: function(batch) {
-        var model = gs.getProperty('x_gov_copilot.ai.model', 'claude-haiku-4-5');
-
+    _buildRequestPayload: function(batch, model) {
         // Build the findings metadata array (metadata only, no PII per AC-N06)
         var platformVersion = gs.getProperty('glide.buildtag', 'unknown');
         var findingsForPrompt = [];
@@ -136,7 +141,7 @@ GovCopilotAIEngine.prototype = {
 
         var payload = {
             model: model,
-            max_tokens: 1024,
+            max_tokens: 4096,
             messages: [
                 {
                     role: 'user',
@@ -234,12 +239,7 @@ GovCopilotAIEngine.prototype = {
         var recSysId = rec.insert();
 
         if (recSysId) {
-            // Update the finding with the back-link to the recommendation
-            var finding = new GlideRecord('x_gov_copilot_finding');
-            if (finding.get(findingSysId)) {
-                finding.setValue('x_gov_copilot_ai_recommendation', recSysId);
-                finding.update();
-            }
+            this._updateFindingBackLink(findingSysId, recSysId);
         }
 
         return recSysId;
@@ -274,16 +274,24 @@ GovCopilotAIEngine.prototype = {
         var recSysId = rec.insert();
 
         if (recSysId) {
-            // Update the finding with the back-link to the recommendation
-            var finding = new GlideRecord('x_gov_copilot_finding');
-            if (finding.get(findingSysId)) {
-                finding.setValue('x_gov_copilot_ai_recommendation', recSysId);
-                finding.update();
-            }
+            this._updateFindingBackLink(findingSysId, recSysId);
         }
 
-        gs.info('GovCopilotAIEngine: Fallback applied for finding ' + findingSysId + '. Reason: ' + (reason || 'unspecified'));
+        gs.warn('GovCopilotAIEngine: Fallback applied for finding ' + findingSysId + '. Reason: ' + (reason || 'unspecified'));
         return recSysId;
+    },
+
+    // ---------------------------------------------------------------------------
+    // PRIVATE: _updateFindingBackLink
+    // Updates the x_gov_copilot_ai_recommendation field on a finding record.
+    // Shared by _storeRecommendation and _applyFallback to avoid duplication.
+    // ---------------------------------------------------------------------------
+    _updateFindingBackLink: function(findingSysId, recSysId) {
+        var finding = new GlideRecord('x_gov_copilot_finding');
+        if (finding.get(findingSysId)) {
+            finding.setValue('x_gov_copilot_ai_recommendation', recSysId);
+            finding.update();
+        }
     },
 
     // ---------------------------------------------------------------------------
