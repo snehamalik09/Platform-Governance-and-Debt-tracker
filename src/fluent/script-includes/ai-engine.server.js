@@ -36,8 +36,8 @@ GovCopilotAIEngine.prototype = {
         var findings = [];
         var gr = new GlideRecord('x_gov_copilot_finding');
         gr.addQuery('x_gov_copilot_scan_run', scanRunSysId);
-        gr.query();
         gr.setLimit(500);
+        gr.query();
         while (gr.next()) {
             findings.push({
                 sys_id: gr.getUniqueValue(),

@@ -89,9 +89,28 @@ GovCopilotProgressWorker.prototype = {
             // Partial scan — suppress overall score
             sr.setValue('x_gov_copilot_status', 'partial');
             sr.setValueAbsolute('x_gov_copilot_overall_health_score', '');
+
+            // Calculate domain scores for whatever domains completed
+            var scoringEnginePartial = new GovCopilotScoringEngine();
+            var domainsPartial = ['performance', 'security', 'integration', 'catalog', 'cmdb'];
+            for (var di = 0; di < domainsPartial.length; di++) {
+                try {
+                    scoringEnginePartial.calculateDomainScore(domainsPartial[di], scanRunSysId);
+                } catch (e) {
+                    gs.warn('GovCopilotProgressWorker: calculateDomainScore failed for ' + domainsPartial[di] + ' — ' + (e.message || e));
+                }
+            }
         } else {
             // Full scan — calculate scores and counts first, then mark completed
             var scoringEngine = new GovCopilotScoringEngine();
+            var domains = ['performance', 'security', 'integration', 'catalog', 'cmdb'];
+            for (var di = 0; di < domains.length; di++) {
+                try {
+                    scoringEngine.calculateDomainScore(domains[di], scanRunSysId);
+                } catch (e) {
+                    gs.warn('GovCopilotProgressWorker: calculateDomainScore failed for ' + domains[di] + ' — ' + e.message);
+                }
+            }
             scoringEngine.calculateOverallHealthScore(scanRunSysId);
             scoringEngine.updateScanRunCounts(scanRunSysId);
 
