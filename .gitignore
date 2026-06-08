@@ -2,6 +2,7 @@ node_modules/
 dist/
 metadata/
 .now/
+.now-sdk/
+target/
 *.log
 .env
-@types/

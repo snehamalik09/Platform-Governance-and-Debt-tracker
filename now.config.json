@@ -1,5 +1,5 @@
 {
+  "name": "Platform Governance & Health Copilot",
   "scope": "x_gov_copilot",
-  "scopeId": "00000000000000000000000000000001",
-  "transpiledSourceDir": "dist/src"
+  "scopeId": "00000000000000000000000000000001"
 }
