@@ -132,98 +132,50 @@
 </g:evaluate>
 
 <!-- =====================================================================
-     STEP 2 — Load scan summary fields
+     STEP 2 — Load all scan summary fields in one GlideRecord query
      ===================================================================== -->
-<g:evaluate var="jvar_scan_loaded">
+<g:evaluate var="jvar_scan_summary">
+  var summary = {};
   if (!jvar_scan_sys_id) {
-    false;
+    summary.loaded = false;
   } else {
-    var srMain = new GlideRecord('x_gov_copilot_scan_run');
-    srMain.get(jvar_scan_sys_id);
-    // Expose individual vars via separate evaluates below
-    true;
+    var sr = new GlideRecord('x_gov_copilot_scan_run');
+    if (sr.get(jvar_scan_sys_id)) {
+      summary.name        = gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_name') || sr.getUniqueValue());
+      summary.status      = gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_status') || '');
+      summary.statusRaw   = sr.getValue('x_gov_copilot_status') || '';
+      summary.startedAt   = gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_started_at') || '');
+      summary.completedAt = gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_completed_at') || '');
+      var durSecs = parseInt(sr.getValue('x_gov_copilot_duration_seconds') || '0', 10);
+      var durH = Math.floor(durSecs / 3600);
+      var durM = Math.floor((durSecs % 3600) / 60);
+      var durS = durSecs % 60;
+      summary.duration    = (durH > 0 ? durH + 'h ' : '') + (durM > 0 ? durM + 'm ' : '') + durS + 's';
+      var scoreRaw = sr.getValue('x_gov_copilot_overall_health_score');
+      summary.score        = (scoreRaw !== null &amp;&amp; scoreRaw !== '') ? parseInt(scoreRaw, 10) : null;
+      summary.scoreDisplay = summary.score !== null ? summary.score : 'N/A';
+      summary.scoreClass   = summary.score === null ? 'delta-neutral'
+                           : summary.score >= 70    ? 'score-good'
+                           : summary.score >= 40    ? 'score-warning'
+                           :                          'score-poor';
+      summary.totalFindings = parseInt(sr.getValue('x_gov_copilot_total_findings') || '0', 10);
+      summary.criticalCount = parseInt(sr.getValue('x_gov_copilot_critical_count') || '0', 10);
+      summary.highCount     = parseInt(sr.getValue('x_gov_copilot_high_count') || '0', 10);
+      summary.mediumCount   = parseInt(sr.getValue('x_gov_copilot_medium_count') || '0', 10);
+      summary.lowCount      = parseInt(sr.getValue('x_gov_copilot_low_count') || '0', 10);
+      summary.loaded = true;
+    } else {
+      summary.loaded = false;
+    }
   }
+  summary;
 </g:evaluate>
 
-<j:if test="${jvar_scan_loaded == 'false'}">
+<j:if test="${jvar_scan_summary.loaded == false}">
   <p style="color:#dc3545;font-weight:bold;">No completed or partial scan found. Run a scan first.</p>
 </j:if>
 
-<j:if test="${jvar_scan_loaded != 'false'}">
-
-<!-- Load individual scan fields into named vars so we can display them cleanly -->
-<g:evaluate var="jvar_scan_name">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_name') || sr.getUniqueValue());
-</g:evaluate>
-
-<g:evaluate var="jvar_scan_status">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_status'));
-</g:evaluate>
-
-<g:evaluate var="jvar_scan_started">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_started_at'));
-</g:evaluate>
-
-<g:evaluate var="jvar_scan_completed">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  gs.htmlEscape(sr.getDisplayValue('x_gov_copilot_completed_at'));
-</g:evaluate>
-
-<g:evaluate var="jvar_scan_duration">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  var secs = parseInt(sr.getValue('x_gov_copilot_duration_seconds') || '0', 10);
-  if (secs >= 3600) {
-    Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm ' + (secs % 60) + 's';
-  } else if (secs >= 60) {
-    Math.floor(secs / 60) + 'm ' + (secs % 60) + 's';
-  } else {
-    secs + 's';
-  }
-</g:evaluate>
-
-<g:evaluate var="jvar_overall_score">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  sr.getValue('x_gov_copilot_overall_health_score') || 'N/A';
-</g:evaluate>
-
-<g:evaluate var="jvar_total_findings">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  sr.getValue('x_gov_copilot_total_findings') || '0';
-</g:evaluate>
-
-<g:evaluate var="jvar_critical_count">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  sr.getValue('x_gov_copilot_critical_count') || '0';
-</g:evaluate>
-
-<g:evaluate var="jvar_high_count">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  sr.getValue('x_gov_copilot_high_count') || '0';
-</g:evaluate>
-
-<g:evaluate var="jvar_medium_count">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  sr.getValue('x_gov_copilot_medium_count') || '0';
-</g:evaluate>
-
-<g:evaluate var="jvar_low_count">
-  var sr = new GlideRecord('x_gov_copilot_scan_run');
-  sr.get(jvar_scan_sys_id);
-  sr.getValue('x_gov_copilot_low_count') || '0';
-</g:evaluate>
+<j:if test="${jvar_scan_summary.loaded != false}">
 
 <!-- =====================================================================
      SECTION 1 — SCAN SUMMARY
@@ -232,36 +184,29 @@
 
 <table style="max-width:600px;">
   <tr><th style="width:200px;">Field</th><th>Value</th></tr>
-  <tr><td>Scan Name</td><td>${jvar_scan_name}</td></tr>
-  <tr><td>Status</td><td>${jvar_scan_status}</td></tr>
-  <tr><td>Started At</td><td>${jvar_scan_started}</td></tr>
-  <tr><td>Completed At</td><td>${jvar_scan_completed}</td></tr>
-  <tr><td>Duration</td><td>${jvar_scan_duration}</td></tr>
+  <tr><td>Scan Name</td><td>${jvar_scan_summary.name}</td></tr>
+  <tr><td>Status</td><td>${jvar_scan_summary.status}</td></tr>
+  <tr><td>Started At</td><td>${jvar_scan_summary.startedAt}</td></tr>
+  <tr><td>Completed At</td><td>${jvar_scan_summary.completedAt}</td></tr>
+  <tr><td>Duration</td><td>${jvar_scan_summary.duration}</td></tr>
   <tr>
     <td>Overall Health Score</td>
     <td>
-      <g:evaluate var="jvar_score_class">
-        var s = parseInt(jvar_overall_score, 10);
-        if (isNaN(s)) { 'delta-neutral'; }
-        else if (s >= 70) { 'score-good'; }
-        else if (s >= 40) { 'score-warning'; }
-        else { 'score-poor'; }
-      </g:evaluate>
-      <span class="${jvar_score_class}">${jvar_overall_score}</span>
-      <j:if test="${jvar_overall_score != 'N/A'}"> / 100</j:if>
+      <span class="${jvar_scan_summary.scoreClass}">${jvar_scan_summary.scoreDisplay}</span>
+      <j:if test="${jvar_scan_summary.score != null}"> / 100</j:if>
     </td>
   </tr>
-  <tr><td>Total Findings</td><td>${jvar_total_findings}</td></tr>
+  <tr><td>Total Findings</td><td>${jvar_scan_summary.totalFindings}</td></tr>
   <tr>
     <td>Finding Breakdown</td>
     <td>
-      <span class="badge badge-critical">${jvar_critical_count} Critical</span>
+      <span class="badge badge-critical">${jvar_scan_summary.criticalCount} Critical</span>
       &nbsp;
-      <span class="badge badge-high">${jvar_high_count} High</span>
+      <span class="badge badge-high">${jvar_scan_summary.highCount} High</span>
       &nbsp;
-      <span class="badge badge-medium">${jvar_medium_count} Medium</span>
+      <span class="badge badge-medium">${jvar_scan_summary.mediumCount} Medium</span>
       &nbsp;
-      <span class="badge badge-low">${jvar_low_count} Low</span>
+      <span class="badge badge-low">${jvar_scan_summary.lowCount} Low</span>
     </td>
   </tr>
 </table>
@@ -272,6 +217,18 @@
 <h2>2. Domain Score Breakdown</h2>
 
 <g:evaluate var="jvar_domain_scores">
+  // Pre-build domain severity counts with one bulk finding query (avoids N+1 per-domain queries)
+  var findingsBySeverityByDomain = {};
+  var allFindings = new GlideRecord('x_gov_copilot_finding');
+  allFindings.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
+  allFindings.query();
+  while (allFindings.next()) {
+    var fd = allFindings.getValue('x_gov_copilot_domain');
+    var fs = allFindings.getValue('x_gov_copilot_severity');
+    if (!findingsBySeverityByDomain[fd]) { findingsBySeverityByDomain[fd] = { critical: 0, high: 0, medium: 0, low: 0 }; }
+    if (findingsBySeverityByDomain[fd][fs] !== undefined) { findingsBySeverityByDomain[fd][fs]++; }
+  }
+
   var scores = [];
   var ds = new GlideRecord('x_gov_copilot_domain_score');
   ds.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
@@ -284,17 +241,8 @@
     var sc = parseInt(ds.getValue('x_gov_copilot_score') || '0', 10);
     var scoreClass = sc >= 70 ? 'score-good' : (sc >= 40 ? 'score-warning' : 'score-poor');
 
-    // Per-domain severity counts from finding table
     var domainName = ds.getValue('x_gov_copilot_domain');
-    var fc = { critical: 0, high: 0, medium: 0, low: 0 };
-    var fq = new GlideRecord('x_gov_copilot_finding');
-    fq.addQuery('x_gov_copilot_scan_run', jvar_scan_sys_id);
-    fq.addQuery('x_gov_copilot_domain', domainName);
-    fq.query();
-    while (fq.next()) {
-      var sev = fq.getValue('x_gov_copilot_severity');
-      if (fc[sev] !== undefined) { fc[sev]++; }
-    }
+    var fc = findingsBySeverityByDomain[domainName] || { critical: 0, high: 0, medium: 0, low: 0 };
 
     scores.push({
       domain:       gs.htmlEscape(ds.getDisplayValue('x_gov_copilot_domain')),
@@ -313,11 +261,11 @@
   scores;
 </g:evaluate>
 
-<j:if test="${jvar_domain_scores.size() == 0}">
+<j:if test="${jvar_domain_scores.length == 0}">
   <p><em>No domain scores recorded for this scan.</em></p>
 </j:if>
 
-<j:if test="${jvar_domain_scores.size() > 0}">
+<j:if test="${jvar_domain_scores.length > 0}">
 <table>
   <tr>
     <th>Domain</th>
@@ -416,7 +364,13 @@
 
       var remStatus = gr.getValue('x_gov_copilot_remediation_status') || 'open';
       var remStatusDisplay = gs.htmlEscape(gr.getDisplayValue('x_gov_copilot_remediation_status') || 'Open');
-      var remStatusClass = 'status-' + remStatus.replace(/ /g, '_');
+      var STATUS_CLASS_MAP = {
+        'open':          'status-open',
+        'in_progress':   'status-in_progress',
+        'resolved':      'status-resolved',
+        'accepted_risk': 'status-accepted_risk'
+      };
+      var remStatusClass = STATUS_CLASS_MAP[remStatus] || 'status-open';
 
       findings.push({
         sys_id:           fSysId,
@@ -453,14 +407,14 @@
   grouped;
 </g:evaluate>
 
-<j:if test="${jvar_findings_by_domain.size() == 0}">
+<j:if test="${jvar_findings_by_domain.length == 0}">
   <p><em>No findings recorded for this scan.</em></p>
 </j:if>
 
 <j:forEach items="${jvar_findings_by_domain}" var="jvar_domain_group">
 
 <div class="page-break">
-<h3>Domain: ${jvar_domain_group.domainLabel} (${jvar_domain_group.findings.size()} findings)</h3>
+<h3>Domain: ${jvar_domain_group.domainLabel} (${jvar_domain_group.findings.length} findings)</h3>
 
 <table>
   <thead>
@@ -539,14 +493,15 @@
 <!-- =====================================================================
      REPORT FOOTER
      ===================================================================== -->
+<g:evaluate var="jvar_scan_sys_id_display">gs.htmlEscape(jvar_scan_sys_id || '');</g:evaluate>
 <hr style="margin-top:30px;"/>
 <p style="color:#999;font-size:11px;">
   Platform Governance &amp; Health Copilot &mdash; Admin Report &mdash;
-  Scan ID: ${jvar_scan_sys_id} &mdash;
+  Scan ID: ${jvar_scan_sys_id_display} &mdash;
   Report generated: <g:evaluate>new GlideDateTime().getDisplayValue()</g:evaluate>
 </p>
 
-</j:if><!-- end jvar_scan_loaded check -->
+</j:if><!-- end jvar_scan_summary.loaded check -->
 
 </body>
 </html>
