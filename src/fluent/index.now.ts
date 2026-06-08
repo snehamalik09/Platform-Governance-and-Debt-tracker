@@ -8,3 +8,4 @@ export * from './script-includes/scoring-engine.now';
 export * from './script-includes/performance-module.now';
 export * from './script-includes/security-module.now';
 export * from './script-includes/integration-module.now';
+export * from './script-includes/catalog-module.now';
