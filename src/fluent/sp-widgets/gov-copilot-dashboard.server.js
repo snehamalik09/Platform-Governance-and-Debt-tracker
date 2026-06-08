@@ -79,6 +79,35 @@
         });
     }
 
+    // Fill in stub entries for any domains missing from this scan
+    var REQUIRED_DOMAINS = ['performance', 'security', 'integration', 'catalog', 'cmdb'];
+    var foundDomains = {};
+    for (var di = 0; di < data.domainScores.length; di++) {
+        foundDomains[data.domainScores[di].domain] = true;
+    }
+    for (var ri = 0; ri < REQUIRED_DOMAINS.length; ri++) {
+        if (!foundDomains[REQUIRED_DOMAINS[ri]]) {
+            data.domainScores.push({
+                domain: REQUIRED_DOMAINS[ri],
+                score: null,
+                previousScore: null,
+                scoreDelta: 0,
+                findingCount: 0,
+                criticalCount: 0,
+                highCount: 0,
+                mediumCount: 0,
+                lowCount: 0,
+                missing: true
+            });
+        }
+    }
+
+    // Sort domain scores into a consistent display order
+    var DOMAIN_ORDER = { security: 0, performance: 1, cmdb: 2, integration: 3, catalog: 4 };
+    data.domainScores.sort(function(a, b) {
+        return (DOMAIN_ORDER[a.domain] || 99) - (DOMAIN_ORDER[b.domain] || 99);
+    });
+
     // Domain severity breakdown from findings
     var domainSeverityMap = {};
     var severityKeys = ['critical', 'high', 'medium', 'low'];
@@ -180,7 +209,7 @@
     var usedRest = {};
     var logGr = new GlideRecord('sys_rest_message_fn_log');
     logGr.addQuery('sys_created_on', '>=', ninetyDaysAgoValue);
-    logGr.setLimit(1000);
+    logGr.setLimit(100);
     logGr.query();
     while (logGr.next()) {
         usedRest[logGr.getValue('rest_message')] = true;
@@ -201,7 +230,7 @@
     var usedCatItems = {};
     var reqGr = new GlideRecord('sc_req_item');
     reqGr.addQuery('sys_created_on', '>=', ninetyDaysAgoValue);
-    reqGr.setLimit(5000);
+    reqGr.setLimit(100);
     reqGr.query();
     while (reqGr.next()) {
         usedCatItems[reqGr.getValue('cat_item')] = true;
@@ -222,7 +251,7 @@
     var triggeredFlows = {};
     var flowCtxGr = new GlideRecord('sys_flow_context');
     flowCtxGr.addQuery('sys_created_on', '>=', ninetyDaysAgoValue);
-    flowCtxGr.setLimit(5000);
+    flowCtxGr.setLimit(100);
     flowCtxGr.query();
     while (flowCtxGr.next()) {
         triggeredFlows[flowCtxGr.getValue('flow')] = true;
