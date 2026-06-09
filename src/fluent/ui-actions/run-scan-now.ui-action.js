@@ -1,5 +1,9 @@
 // UI Action script — runs server-side when "Run Scan Now" button is clicked.
 // Calls GovCopilotScanOrchestrator.runScan() and reports success or failure.
+if (!gs.hasRole('sysadmin')) {
+    gs.addErrorMessage('Insufficient privileges. This action requires the sysadmin role.');
+    return;
+}
 var orchestrator = new GovCopilotScanOrchestrator();
 try {
     var result = orchestrator.runScan();

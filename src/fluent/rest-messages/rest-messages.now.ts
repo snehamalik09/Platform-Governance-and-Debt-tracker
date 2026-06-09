@@ -26,10 +26,9 @@ export const claudeApiMessage = Record({
 
 // -----------------------------------------------------------------------
 // HTTP Method: sendFindings (POST)
-// The body template uses ServiceNow variable substitution syntax.
-// Variables resolved at runtime by GovCopilotAIEngine Script Include:
-//   ${ai_model}  — Claude model id (from sys_property x_gov_copilot.ai.model)
-//   ${prompt}    — JSON-safe prompt string containing the findings payload
+// The content field below is a reference template only.
+// GovCopilotAIEngine overrides it at runtime via rm.setRequestBody(),
+// so the stored template has no effect on actual requests.
 // -----------------------------------------------------------------------
 export const claudeApiSendFindings = Record({
   $id: 'rest_msg_fn_gov_copilot_send_findings',
