@@ -12,5 +12,6 @@ export const govCopilotScanEndpoint = ScriptInclude({
   apiName: 'x_gov_copilot.GovCopilotScanEndpoint',
   description: 'GlideAjax endpoint for triggering on-demand scans from Service Portal',
   clientCallable: true,
+  accessibleFrom: 'public',
   script: Now.include('./scan-endpoint.server.js'),
 })

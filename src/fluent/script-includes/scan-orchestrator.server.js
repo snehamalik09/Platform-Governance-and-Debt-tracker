@@ -83,7 +83,7 @@ GovCopilotScanOrchestrator.prototype = {
         if (countAgg.next()) {
             scanNum = parseInt(countAgg.getAggregate('COUNT'), 10) + 1;
         }
-        var dateStr = gs.nowDate();
+        var dateStr = new GlideDate().getValue();
         var numStr = scanNum < 10 ? '00' + scanNum : (scanNum < 100 ? '0' + scanNum : '' + scanNum);
         return 'Scan-' + dateStr + '-' + numStr;
     },
@@ -96,7 +96,7 @@ GovCopilotScanOrchestrator.prototype = {
     _launchProgressWorker: function(scanRunSysId) {
         var worker = new GlideScriptedHierarchicalWorker();
         worker.setProgressName('Platform Governance Scan');
-        worker.setScriptIncludeName('GovCopilotProgressWorker');
+        worker.setScriptIncludeName('x_gov_copilot.GovCopilotProgressWorker');
         worker.setScriptIncludeMethod('process');
         worker.putMethodArg('scanRunSysId', scanRunSysId);
         worker.setBackground(true);

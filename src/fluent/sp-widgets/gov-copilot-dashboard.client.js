@@ -131,32 +131,25 @@ api.controller = function($timeout, $http, spUtil) {
     };
 
     // -----------------------------------------------------------------------
-    // Run Scan Now (GlideAjax) — sysadmin only
+    // Run Scan Now — sysadmin only
+    // Uses c.server.update() to stay within widget scope, avoiding cross-scope
+    // GlideAjax restrictions that block scoped Script Includes.
     // -----------------------------------------------------------------------
     c.runScan = function() {
         c.scanning = true;
         c.scanMessage = null;
-        var ga = new GlideAjax('GovCopilotScanEndpoint');
-        ga.addParam('sysparm_name', 'triggerScan');
-        ga.getXML(function(response) {
+        c.data.action = 'triggerScan';
+        c.server.update().then(function() {
             c.scanning = false;
-            var items = response.responseXML.documentElement.getElementsByTagName('item');
-            if (!items || items.length === 0) {
-                $timeout(function() {
-                    c.scanMessage = { type: 'error', text: 'No response from server.' };
-                }, 0);
-                return;
-            }
-            var answer = items[0];
-            var error = answer.getAttribute('error');
-            if (error) {
-                $timeout(function() {
-                    c.scanMessage = { type: 'error', text: error };
-                }, 0);
+            c.data.action = null;
+            if (c.data.scanError) {
+                c.scanMessage = { type: 'error', text: c.data.scanError };
+                delete c.data.scanError;
+            } else if (c.data.scanStarted) {
+                c.scanMessage = { type: 'success', text: 'Scan started. Refresh the page after a few minutes to see updated results.' };
+                delete c.data.scanStarted;
             } else {
-                $timeout(function() {
-                    c.scanMessage = { type: 'success', text: 'Scan started. Refresh the page after a few minutes to see updated results.' };
-                }, 0);
+                c.scanMessage = { type: 'error', text: 'No response from server.' };
             }
         });
     };

@@ -6,5 +6,6 @@ export const govCopilotProgressWorker = ScriptInclude({
   apiName: 'x_gov_copilot.GovCopilotProgressWorker',
   description: 'Runs platform governance scan modules sequentially and aggregates results',
   clientCallable: false,
+  accessibleFrom: 'public',
   script: Now.include('./progress-worker.server.js'),
 })

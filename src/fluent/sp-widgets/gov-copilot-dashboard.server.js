@@ -5,6 +5,23 @@
 // AC-F14 (trend charts), AC-F15 (cost optimisation).
 
 (function() {
+    // Handle scan trigger from client (c.server.update with action='triggerScan')
+    if (input && input.action === 'triggerScan') {
+        if (!gs.hasRole('sysadmin')) {
+            data.scanError = 'Access denied. Sysadmin role required.';
+            return;
+        }
+        try {
+            var orchestrator = new GovCopilotScanOrchestrator();
+            var result = orchestrator.runScan();
+            data.scanStarted = true;
+            data.scanRunSysId = result.scanRunSysId;
+        } catch(e) {
+            data.scanError = e.message || 'Scan failed to start';
+        }
+        return;
+    }
+
     data.latestScan = null;
     data.previousScan = null;
     data.domainScores = [];
@@ -215,7 +232,7 @@
     var usedRest = {};
     var logGr = new GlideRecord('sys_rest_message_fn_log');
     logGr.addQuery('sys_created_on', '>=', ninetyDaysAgoValue);
-    logGr.setLimit(100);
+    logGr.setLimit(5000);
     logGr.query();
     while (logGr.next()) {
         usedRest[logGr.getValue('rest_message')] = true;
@@ -236,7 +253,7 @@
     var usedCatItems = {};
     var reqGr = new GlideRecord('sc_req_item');
     reqGr.addQuery('sys_created_on', '>=', ninetyDaysAgoValue);
-    reqGr.setLimit(100);
+    reqGr.setLimit(5000);
     reqGr.query();
     while (reqGr.next()) {
         usedCatItems[reqGr.getValue('cat_item')] = true;
@@ -257,12 +274,13 @@
     var triggeredFlows = {};
     var flowCtxGr = new GlideRecord('sys_flow_context');
     flowCtxGr.addQuery('sys_created_on', '>=', ninetyDaysAgoValue);
-    flowCtxGr.setLimit(100);
+    flowCtxGr.setLimit(5000);
     flowCtxGr.query();
     while (flowCtxGr.next()) {
         triggeredFlows[flowCtxGr.getValue('flow')] = true;
     }
     var flowGr = new GlideRecord('sys_hub_flow');
+    flowGr.addQuery('active', true);
     flowGr.setLimit(100);
     flowGr.query();
     var unusedFlowCount = 0;

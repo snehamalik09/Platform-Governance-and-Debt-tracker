@@ -46,8 +46,7 @@ GovCopilotAIEngine.prototype = {
                 finding_type: gr.getValue('x_gov_copilot_finding_type') || '',
                 severity: gr.getValue('x_gov_copilot_severity') || '',
                 affected_table: gr.getValue('x_gov_copilot_affected_table') || '',
-                affected_record_name: gr.getValue('x_gov_copilot_affected_record') || '',
-                affected_count: gr.getValue('x_gov_copilot_affected_count') || 0
+                affected_record_name: gr.getValue('x_gov_copilot_affected_record_name') || ''
             });
         }
 
@@ -127,7 +126,6 @@ GovCopilotAIEngine.prototype = {
                 severity: f.severity,
                 affected_table: f.affected_table,
                 affected_record_name: f.affected_record_name,
-                affected_count: f.affected_count,
                 platform_version: platformVersion
             });
         }
@@ -302,6 +300,7 @@ GovCopilotAIEngine.prototype = {
     _applyFallbackForScan: function(scanRunSysId, reason) {
         var gr = new GlideRecord('x_gov_copilot_finding');
         gr.addQuery('x_gov_copilot_scan_run', scanRunSysId);
+        gr.setLimit(500);
         gr.query();
         while (gr.next()) {
             this._applyFallback(gr.getUniqueValue(), reason);

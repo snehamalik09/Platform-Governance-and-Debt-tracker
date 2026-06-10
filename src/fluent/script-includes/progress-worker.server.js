@@ -35,11 +35,20 @@ GovCopilotProgressWorker.prototype = {
      */
     _runModule: function(moduleClass, domain, scanRunSysId) {
         try {
-            var ctor = global[moduleClass];
-            if (!ctor) {
-                throw new Error('GovCopilotProgressWorker: module class not found: ' + moduleClass);
+            var module;
+            if (moduleClass === 'GovCopilotPerformanceModule') {
+                module = new GovCopilotPerformanceModule();
+            } else if (moduleClass === 'GovCopilotSecurityModule') {
+                module = new GovCopilotSecurityModule();
+            } else if (moduleClass === 'GovCopilotIntegrationModule') {
+                module = new GovCopilotIntegrationModule();
+            } else if (moduleClass === 'GovCopilotCatalogModule') {
+                module = new GovCopilotCatalogModule();
+            } else if (moduleClass === 'GovCopilotCMDBModule') {
+                module = new GovCopilotCMDBModule();
+            } else {
+                throw new Error('Unknown module class: ' + moduleClass);
             }
-            var module = new ctor();
             var findingCount = module.execute(scanRunSysId);
 
             // Increment modules_completed
@@ -88,7 +97,7 @@ GovCopilotProgressWorker.prototype = {
         if (anyFailed) {
             // Partial scan — suppress overall score
             sr.setValue('x_gov_copilot_status', 'partial');
-            sr.setValueAbsolute('x_gov_copilot_overall_health_score', '');
+            sr.setValue('x_gov_copilot_overall_health_score', null);
 
             // Calculate domain scores for whatever domains completed
             var scoringEnginePartial = new GovCopilotScoringEngine();
