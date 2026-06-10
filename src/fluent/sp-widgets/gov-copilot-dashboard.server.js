@@ -176,7 +176,7 @@
             affected_table: findGr.getValue('x_gov_copilot_affected_table'),
             affected_record_name: findGr.getValue('x_gov_copilot_affected_record_name'),
             remediation_status: findGr.getValue('x_gov_copilot_remediation_status'),
-            ai_recommendation: findGr.getValue('x_gov_copilot_ai_recommendation')
+            ai_recommendation: ''
         });
     }
     var SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -184,6 +184,38 @@
         return (SEVERITY_ORDER[a.severity] !== undefined ? SEVERITY_ORDER[a.severity] : 99) -
                (SEVERITY_ORDER[b.severity] !== undefined ? SEVERITY_ORDER[b.severity] : 99);
     });
+
+    // -----------------------------------------------------------------------
+    // 3b. Fetch AI recommendation text and merge into findings
+    // x_gov_copilot_ai_recommendation on finding is a Reference — getValue()
+    // returns a sys_id, not text. Query the recommendation table directly.
+    // -----------------------------------------------------------------------
+    var recMap = {};
+    var recGr = new GlideRecord('x_gov_copilot_recommendation');
+    recGr.addQuery('x_gov_copilot_finding.x_gov_copilot_scan_run', latestSysId);
+    recGr.setLimit(200);
+    recGr.query();
+    while (recGr.next()) {
+        var recFindingId = recGr.getValue('x_gov_copilot_finding');
+        var recStatus    = recGr.getValue('x_gov_copilot_ai_status') || '';
+        var recSteps     = recGr.getValue('x_gov_copilot_remediation_steps') || '';
+        var recImpact    = recGr.getValue('x_gov_copilot_business_impact') || '';
+        var recEffort    = recGr.getValue('x_gov_copilot_estimated_effort') || '';
+        var recBenefit   = recGr.getValue('x_gov_copilot_expected_benefit') || '';
+
+        var recText = recSteps;
+        if (recStatus === 'generated') {
+            if (recImpact)  { recText += '\n\nBusiness Impact: ' + recImpact; }
+            if (recEffort)  { recText += '\nEstimated Effort: ' + recEffort; }
+            if (recBenefit) { recText += '\nExpected Benefit: ' + recBenefit; }
+        }
+        if (recFindingId && recText) {
+            recMap[recFindingId] = recText;
+        }
+    }
+    for (var ri = 0; ri < data.findings.length; ri++) {
+        data.findings[ri].ai_recommendation = recMap[data.findings[ri].sys_id] || '';
+    }
 
     // -----------------------------------------------------------------------
     // 4. AI recommendation count (findings with generated recommendations)

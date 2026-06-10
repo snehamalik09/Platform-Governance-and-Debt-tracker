@@ -109,6 +109,8 @@ GovCopilotProgressWorker.prototype = {
                     gs.warn('GovCopilotProgressWorker: calculateDomainScore failed for ' + domainsPartial[di] + ' — ' + (e.message || e));
                 }
             }
+            // Write severity counts even for partial scans so the dashboard tiles are correct
+            scoringEnginePartial.updateScanRunCounts(scanRunSysId);
         } else {
             // Full scan — calculate scores and counts first, then mark completed
             var scoringEngine = new GovCopilotScoringEngine();
