@@ -74,10 +74,12 @@ GovCopilotAIEngine.prototype = {
         // Process each batch
         for (var b = 0; b < batches.length; b++) {
             var currentBatch = batches[b];
+            gs.info('GovCopilotAIEngine: Processing batch ' + (b + 1) + ' of ' + batches.length + ' (' + currentBatch.length + ' finding(s)).');
             var payload = this._buildRequestPayload(currentBatch, model);
 
             try {
                 var recommendations = this._callClaudeAPI(payload);
+                gs.info('GovCopilotAIEngine: Batch ' + (b + 1) + ' — Claude returned ' + recommendations.length + ' recommendation(s).');
 
                 // Match recommendations to findings by finding_id
                 var recMap = {};
@@ -87,20 +89,22 @@ GovCopilotAIEngine.prototype = {
                         recMap[rec.finding_id] = rec;
                     }
                 }
+                gs.info('GovCopilotAIEngine: Batch ' + (b + 1) + ' — matched ' + Object.keys(recMap).length + ' finding_id(s) from response.');
 
                 for (var f = 0; f < currentBatch.length; f++) {
                     var finding = currentBatch[f];
                     var recData = recMap[finding.finding_id];
                     if (recData) {
                         this._storeRecommendation(finding.sys_id, recData, model);
+                        gs.info('GovCopilotAIEngine: Stored generated recommendation for finding ' + finding.sys_id + '.');
                     } else {
-                        gs.warn('GovCopilotAIEngine: No recommendation returned for finding ' + finding.sys_id + '. Applying fallback.');
+                        gs.warn('GovCopilotAIEngine: No recommendation matched for finding ' + finding.sys_id + ' (finding_id: ' + finding.finding_id + '). Applying fallback.');
                         this._applyFallback(finding.sys_id, 'No recommendation returned by Claude for this finding');
                     }
                 }
 
             } catch (e) {
-                gs.warn('GovCopilotAIEngine: Batch ' + (b + 1) + ' failed: ' + e.message + '. Applying fallback for ' + currentBatch.length + ' finding(s).');
+                gs.error('GovCopilotAIEngine: Batch ' + (b + 1) + ' failed — ' + e.message + '. Applying fallback for ' + currentBatch.length + ' finding(s).');
                 for (var ff = 0; ff < currentBatch.length; ff++) {
                     this._applyFallback(currentBatch[ff].sys_id, 'Claude API call failed: ' + e.message);
                 }
@@ -173,6 +177,8 @@ GovCopilotAIEngine.prototype = {
                 var response = rm.execute();
                 var statusCode = response.getStatusCode();
 
+                gs.info('GovCopilotAIEngine: HTTP ' + statusCode + ' received on attempt ' + attempt);
+
                 if (statusCode === 200) {
                     var body = response.getBody();
                     var parsed = JSON.parse(body);
@@ -180,13 +186,25 @@ GovCopilotAIEngine.prototype = {
                     // Claude API returns: { content: [{ type: 'text', text: '...' }] }
                     if (parsed && parsed.content && parsed.content.length > 0) {
                         var text = parsed.content[0].text;
-                        // Parse the JSON array from Claude's text response
-                        var recommendations = JSON.parse(text);
-                        if (!Array.isArray(recommendations)) {
-                            throw new Error('Claude response content is not a JSON array: ' + text.substring(0, 200));
+
+                        // Claude occasionally wraps JSON in markdown code fences despite
+                        // being instructed not to — strip them before parsing.
+                        var trimmed = text.trim();
+                        if (trimmed.charAt(0) === '`') {
+                            gs.warn('GovCopilotAIEngine: Markdown code fences detected in Claude response — stripping before parse. Raw prefix: ' + trimmed.substring(0, 20));
+                            trimmed = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+                            gs.info('GovCopilotAIEngine: Text after stripping fences (first 100 chars): ' + trimmed.substring(0, 100));
                         }
+
+                        // Parse the JSON array from Claude's text response
+                        var recommendations = JSON.parse(trimmed);
+                        if (!Array.isArray(recommendations)) {
+                            throw new Error('Claude response content is not a JSON array: ' + trimmed.substring(0, 200));
+                        }
+                        gs.info('GovCopilotAIEngine: Successfully parsed ' + recommendations.length + ' recommendation(s) from Claude response.');
                         return recommendations;
                     }
+                    gs.error('GovCopilotAIEngine: Unexpected Claude API response structure. Body (first 300 chars): ' + body.substring(0, 300));
                     throw new Error('Unexpected Claude API response structure: ' + body.substring(0, 200));
                 }
 
@@ -197,6 +215,7 @@ GovCopilotAIEngine.prototype = {
                     // Continue to next attempt
                 } else {
                     // Non-retryable error
+                    gs.error('GovCopilotAIEngine: Non-retryable HTTP ' + statusCode + ' from Claude API. Body: ' + response.getBody().substring(0, 300));
                     throw new Error('Claude API returned non-retryable HTTP ' + statusCode + ': ' + response.getBody().substring(0, 200));
                 }
 
