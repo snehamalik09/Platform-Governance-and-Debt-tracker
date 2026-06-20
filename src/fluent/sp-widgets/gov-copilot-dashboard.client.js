@@ -160,7 +160,7 @@ api.controller = function($timeout, $http, spUtil) {
     c.$onInit = function() {
         if (!c.data || !c.data.latestScan) { return; }
 
-        $timeout(function() {
+        $timeout(function() { // 300ms gives ng-if time to render canvases into DOM
             // Health Gauge (Doughnut) — AC-F11
             var healthCanvas = document.getElementById('gov-copilot-health-gauge');
             if (healthCanvas) {
@@ -259,6 +259,6 @@ api.controller = function($timeout, $http, spUtil) {
                     }
                 });
             }
-        }, 0);
+        }, 300);
     };
 };

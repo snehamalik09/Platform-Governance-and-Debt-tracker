@@ -133,11 +133,16 @@
    ------------------------------------------------------------------------- */
 .gov-copilot-ai-badge {
     display: inline-block;
-    padding: 6px 12px;
+    padding: 12px 24px;
     background-color: #f8f9fa;
     border: 1px solid #dee2e6;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 1.8rem;
+
+    .badge {
+        font-size: 1.6rem;
+        padding: 6px 10px;
+    }
 }
 
 /* -------------------------------------------------------------------------

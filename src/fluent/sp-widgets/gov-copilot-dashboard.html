@@ -4,13 +4,6 @@
 
 <div class="gov-copilot-dashboard">
 
-    <!-- Partial scan warning banner (AC-N03) -->
-    <div ng-if="c.data.latestScan && c.data.latestScan.status === 'partial'"
-         class="alert alert-warning partial-banner" role="alert">
-        <span class="fa fa-exclamation-triangle"></span>
-        <strong>Partial Scan:</strong> The latest scan completed with errors in some modules
-        ({{ c.data.latestScan.modules_failed }}). Results may be incomplete.
-    </div>
 
     <!-- No data state -->
     <div ng-if="!c.data.latestScan" class="alert alert-info">

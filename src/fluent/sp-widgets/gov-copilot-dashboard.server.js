@@ -279,7 +279,7 @@
             unusedRestCount++;
         }
     }
-    data.costOpt.unusedIntegrations = unusedRestCount;
+    // data.costOpt.unusedIntegrations = unusedRestCount; // DEMO: hardcoded above
 
     // 6b. Zero-request catalog items (active, no sc_req_item in last 90 days)
     var usedCatItems = {};
@@ -300,7 +300,7 @@
             unusedCatCount++;
         }
     }
-    data.costOpt.zeroRequestCatalogItems = unusedCatCount;
+    // data.costOpt.zeroRequestCatalogItems = unusedCatCount; // DEMO: hardcoded above
 
     // 6c. Flows never triggered (no sys_flow_context in last 90 days)
     var triggeredFlows = {};
@@ -321,7 +321,7 @@
             unusedFlowCount++;
         }
     }
-    data.costOpt.flowsNeverTriggered = unusedFlowCount;
+    // data.costOpt.flowsNeverTriggered = unusedFlowCount; // DEMO: hardcoded above
 
     // 6d. Scheduled jobs that have never run
     var jobGr = new GlideRecord('sysauto_script');
@@ -333,6 +333,6 @@
     while (jobGr.next()) {
         neverRunCount++;
     }
-    data.costOpt.jobsNeverRun = neverRunCount;
+    // data.costOpt.jobsNeverRun = neverRunCount; // DEMO: hardcoded above
 
 })();
